@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import mimetypes
 import os
 from pathlib import Path
 
@@ -31,6 +32,10 @@ ALLOWED_HOSTS = [
     "vihohtlife.up.railway.app",
     "https://vihohtlife.up.railway.app",
 ]
+
+
+mimetypes.add_type("text/css", ".css", True)
+mimetypes.add_type("aplication/javascript", ".js", True)
 
 CSRF_TRUSTED_ORIGINS = ["https://vihohtlife.up.railway.app"]
 
