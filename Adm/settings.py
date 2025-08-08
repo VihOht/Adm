@@ -32,11 +32,7 @@ ALLOWED_HOSTS = [
     "https://vihohtlife.up.railway.app",
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    "localhost",
-    "vihohtlife.up.railway.app",
-    "https://vihohtlife.up.railway.app",
-]
+CSRF_TRUSTED_ORIGINS = ["https://vihohtlife.up.railway.app"]
 
 # Application definition
 
