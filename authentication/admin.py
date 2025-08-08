@@ -7,8 +7,7 @@ from authentication.models import User
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ["username", "email", "created_at"]
+    list_display = ["username", "email"]
     list_filter = ["username", "email"]
     search_fields = ["username", "email"]
-    date_hierarchy = "created_at"
-    ordering = ["-created_at"]
+    ordering = ["username"]
