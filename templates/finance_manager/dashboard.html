@@ -1,0 +1,625 @@
+{% extends 'finance_manager/base.html' %}
+{% load static %}
+{% load mathfilters %}
+
+{% block finance_head %}
+<link rel="stylesheet" href="{% static 'css/finance_dashboard.css' %}">
+<script>
+  // Set URLs and CSRF token for JavaScript to use
+  window.createExpenseUrl = '{% url "finance_manager:create_expense" %}';
+  window.createCategoryUrl = '{% url "finance_manager:create_category" %}';
+  window.createIncomeUrl = '{% url "finance_manager:create        <div class="flex gap-2">
+          <select id="edit_income_category" name="category" class="select select-bordered flex-1">
+            <option value="">Selecione uma categoria</option>
+            {% for category in income_categories %}
+              <option value="{{ category.id }}" data-color="{{ category.color }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-ghost btn-xs" onclick="editSelectedIncomeCategory()" title="Editar categoria selecionada">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+          </button>
+          <button type="button" class="btn btn-outline" onclick="openIncomeCategoryModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>}';
+  window.createIncomeCategoryUrl = '{% url "finance_manager:create_income_category" %}';
+  window.editExpenseUrl = '/finance/expense/'; // Will append ID in JavaScript
+  window.deleteExpenseUrl = '/finance/expense/'; // Will append ID in JavaScript
+  window.editIncomeUrl = '/finance/income/'; // Will append ID in JavaScript
+  window.deleteIncomeUrl = '/finance/income/'; // Will append ID in JavaScript
+  window.csrfToken = '{{ csrf_token }}';
+</script>
+{% endblock %}
+
+{% block finance_content %}
+{% csrf_token %}
+<div class="max-w-7xl mx-auto">
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-base-content mb-2">
+      <i data-lucide="credit-card" class="w-8 h-8 inline-block mr-3"></i>
+      Gestão de Gastos
+    </h1>
+    <p class="text-base-content/70">Controle e monitore seus gastos pessoais</p>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="stat bg-base-100 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer group" onclick="openExpenseModal()">
+      <div class="stat-figure text-primary">
+        <i data-lucide="trending-down" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Gastos do Mês</div>
+      <div class="stat-value text-primary flex items-center gap-3">
+        R$ {{total_expenses}}
+        <div class="btn btn-circle btn-xs btn-primary opacity-0 group-hover:opacity-100 transition-opacity">
+          <i data-lucide="plus" class="w-3 h-3"></i>
+        </div>
+      </div>
+      <div class="stat-desc">↗︎ 12% mais que mês passado</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer group" onclick="openIncomeModal()">
+      <div class="stat-figure text-secondary">
+        <i data-lucide="target" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Orçamento</div>
+      <div class="stat-value text-secondary flex items-center gap-3">
+        R$ {{total_incomes}}
+        <div class="btn btn-circle btn-xs btn-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+          <i data-lucide="plus" class="w-3 h-3"></i>
+        </div>
+      </div>
+      <div class="stat-desc">Total de receitas</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-accent">
+        <i data-lucide="calendar" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Média Diária</div>
+      <div class="stat-value text-accent">R$ 82</div>
+      <div class="stat-desc">Últimos 30 dias</div>
+    </div>
+  </div>
+
+  <!-- Recent Expenses Preview -->
+  <div class="mt-8">
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title mb-4">
+          <i data-lucide="clock" class="w-5 h-5 mr-2"></i>
+          Gastos Recentes
+        </h2>
+        
+        <div class="overflow-x-auto">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for expense in expenses %}
+              <tr>
+                <td>{{ expense.spent_at | date:"D, d M, Y" }}</td>
+                <td>{{ expense.description }}</td>
+                <td><span class="badge badge-primary" style="background-color:{{ expense.category.color }}; important!">{{ expense.category }}</span></td>
+                {% with am=expense.amount %}
+                <td class="text-error font-semibold">R$ {{ am|intdiv:100 }}{% if am|mod:100 == 0 %},00{%elif am|mod:100 < 10%},0{{am|mod:100}}{% else %},{{am|mod:100}}{% endif %}</td>
+                {% endwith %}
+                <td>
+                  <button class="btn btn-ghost btn-sm" onclick="openEditExpenseModal({{ expense.id }}, '{{ expense.description|escapejs }}', '{{ expense.detailed_description|escapejs }}', '{{ expense.spent_at|date:'Y-m-d' }}', {{ expense.amount }}, {{ expense.category.id }})">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  </button>
+                  <button class="btn btn-ghost btn-sm" onclick="deleteExpense({{ expense.id }}, '{{ expense.description|escapejs }}', '{{ expense.detailed_description|escapejs }}', '{{ expense.spent_at|date:'Y-m-d' }}', {{ expense.amount }}, {{ expense.category.id }})">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="card-actions justify-end mt-4">
+          <button class="btn btn-outline">Ver Todos os Gastos</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Incomes Preview -->
+  <div class="mt-8">
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title mb-4">
+          <i data-lucide="trending-up" class="w-5 h-5 mr-2"></i>
+          Receitas Recentes
+        </h2>
+        
+        <div class="overflow-x-auto">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for income in incomes %}
+              <tr>
+                <td>{{ income.received_at | date:"D, d M, Y" }}</td>
+                <td>{{ income.description }}</td>
+                <td>
+                  {% if income.category %}
+                    <span class="badge badge-secondary" style="background-color:{{ income.category.color }}; color: white;">{{ income.category }}</span>
+                  {% else %}
+                    <span class="badge badge-ghost">Sem categoria</span>
+                  {% endif %}
+                </td>
+                {% with am=income.amount %}
+                <td class="text-success font-semibold">R$ {{ am|intdiv:100 }}{% if am|mod:100 == 0 %},00{%elif am|mod:100 < 10%},0{{am|mod:100}}{% else %},{{am|mod:100}}{% endif %}</td>
+                {% endwith %}
+                <td>
+                  <button class="btn btn-ghost btn-sm" onclick="openEditIncomeModal({{ income.id }}, '{{ income.description|escapejs }}', '{{ income.detailed_description|escapejs }}', '{{ income.received_at|date:'Y-m-d' }}', {{ income.amount }}, {% if income.category %}{{ income.category.id }}{% else %}null{% endif %})">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="card-actions justify-end mt-4">
+          <button class="btn btn-outline">Ver Todas as Receitas</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div id="expenseModal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="plus" class="w-5 h-5 inline-block mr-2"></i>
+      Adicionar Novo Gasto
+    </h3>
+    
+    <form id="expenseForm" class="space-y-4">
+      <!-- Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição *</span>
+        </label>
+        <input type="text" id="description" name="description" placeholder="Ex: Supermercado, Gasolina..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Detailed Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição Detalhada</span>
+        </label>
+        <textarea id="detailed_description" name="detailed_description" 
+                  placeholder="Informações adicionais sobre o gasto..." 
+                  class="textarea textarea-bordered w-full h-20"></textarea>
+      </div>
+      
+      <!-- Date and Amount Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Data do Gasto *</span>
+          </label>
+          <input type="date" id="spent_at" name="spent_at" 
+                 class="input input-bordered w-full" required>
+        </div>
+        
+        <!-- Amount -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Valor (R$) *</span>
+          </label>
+          <input type="number" id="amount" name="amount" step="0.01" min="0" 
+                 placeholder="0,00" class="input input-bordered w-full" required>
+        </div>
+      </div>
+      
+      <!-- Category -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Categoria</span>
+        </label>
+        <div class="flex gap-2">
+          <select id="category" name="category" class="select select-bordered flex-1">
+            <option value="">Selecione uma categoria</option>
+            {% for category in categories %}
+              <option value="{{ category.id }}" data-color="{{ category.color }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline" onclick="openCategoryModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeExpenseModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitExpense()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Salvar Gasto
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Category Modal -->
+<div id="categoryModal" class="modal">
+  <div class="modal-box">I Categ
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="tag" class="w-5 h-5 inline-block mr-2"></i>
+      Nova Categoria
+    </h3>
+    
+    <form id="categoryForm" class="space-y-4">
+      <!-- Category Name -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Nome da Categoria *</span>
+        </label>
+        <input type="text" id="category_name" name="name" placeholder="Ex: Alimentação, Transporte..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Category Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição</span>
+        </label>
+        <input type="text" id="category_description" name="description" 
+               placeholder="Descrição da categoria..." 
+               class="input input-bordered w-full">
+      </div>
+      
+      <!-- Category Color -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Cor da Categoria</span>
+        </label>
+        <div class="flex gap-2 items-center">
+          <input type="color" id="category_color" name="color" value="#3B82F6" 
+                 class="w-12 h-12 rounded-lg border-2 border-base-300">
+          <span class="text-sm text-base-content/70">Escolha uma cor para identificar a categoria</span>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeCategoryModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitCategory()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Criar Categoria
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Expense Modal -->
+<div id="editExpenseModal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="pencil" class="w-5 h-5 inline-block mr-2"></i>
+      Editar Gasto
+    </h3>
+    
+    <form id="editExpenseForm" class="space-y-4">
+      <input type="hidden" id="edit_expense_id" name="expense_id">
+      
+      <!-- Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição *</span>
+        </label>
+        <input type="text" id="edit_description" name="description" placeholder="Ex: Supermercado, Gasolina..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Detailed Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição Detalhada</span>
+        </label>
+        <textarea id="edit_detailed_description" name="detailed_description" 
+                  placeholder="Informações adicionais sobre o gasto..." 
+                  class="textarea textarea-bordered w-full h-20"></textarea>
+      </div>
+      
+      <!-- Date and Amount Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Data do Gasto *</span>
+          </label>
+          <input type="date" id="edit_spent_at" name="spent_at" 
+                 class="input input-bordered w-full" required>
+        </div>
+        
+        <!-- Amount -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Valor (R$) *</span>
+          </label>
+          <input type="number" id="edit_amount" name="amount" step="0.01" min="0" 
+                 placeholder="0,00" class="input input-bordered w-full" required>
+        </div>
+      </div>
+      
+      <!-- Category -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Categoria</span>
+        </label>
+        <div class="flex gap-2">
+          <select id="edit_category" name="category" class="select select-bordered flex-1">
+            <option value="">Selecione uma categoria</option>
+            {% for category in categories %}
+              <option value="{{ category.id }}" data-color="{{ category.color }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline" onclick="openCategoryModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+          <button type="button" class="btn btn-outline" onclick="editSelectedCategory()">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeEditExpenseModal()">Cancelar</button>
+      <button class="btn btn-error btn-outline" onclick="deleteExpense()">
+        <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+        Excluir
+      </button>
+      <button class="btn btn-primary" onclick="submitEditExpense()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Salvar Alterações
+      </button>
+    </div>
+  </div>
+</div>
+
+  </div>
+</div>
+
+<!-- Add Income Modal -->
+<div id="incomeModal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="plus" class="w-5 h-5 inline-block mr-2"></i>
+      Adicionar Nova Receita
+    </h3>
+    
+    <form id="incomeForm" class="space-y-4">
+      <!-- Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição *</span>
+        </label>
+        <input type="text" id="income_description" name="description" placeholder="Ex: Salário, Freelance..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Detailed Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição Detalhada</span>
+        </label>
+        <textarea id="income_detailed_description" name="detailed_description" 
+                  placeholder="Informações adicionais sobre a receita..." 
+                  class="textarea textarea-bordered w-full h-20"></textarea>
+      </div>
+      
+      <!-- Date and Amount Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Data do Recebimento *</span>
+          </label>
+          <input type="date" id="income_received_at" name="received_at" 
+                 class="input input-bordered w-full" required>
+        </div>
+        
+        <!-- Amount -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Valor (R$) *</span>
+          </label>
+          <input type="number" id="income_amount" name="amount" step="0.01" min="0" 
+                 placeholder="0,00" class="input input-bordered w-full" required>
+        </div>
+      </div>
+      
+      <!-- Category -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Categoria</span>
+        </label>
+        <div class="flex gap-2">
+          <select id="income_category" name="category" class="select select-bordered flex-1">
+            <option value="">Selecione uma categoria</option>
+            {% for category in income_categories %}
+              <option value="{{ category.id }}" data-color="{{ category.color }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline" onclick="openIncomeCategoryModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeIncomeModal()">Cancelar</button>
+      <button class="btn btn-secondary" onclick="submitIncome()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Salvar Receita
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Income Category Modal -->
+<div id="incomeCategoryModal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="tag" class="w-5 h-5 inline-block mr-2"></i>
+      Nova Categoria de Receita
+    </h3>
+    
+    <form id="incomeCategoryForm" class="space-y-4">
+      <!-- Category Name -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Nome da Categoria *</span>
+        </label>
+        <input type="text" id="income_category_name" name="name" placeholder="Ex: Salário, Investimentos..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Category Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição</span>
+        </label>
+        <input type="text" id="income_category_description" name="description" 
+               placeholder="Descrição da categoria..." 
+               class="input input-bordered w-full">
+      </div>
+      
+      <!-- Category Color -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Cor da Categoria</span>
+        </label>
+        <div class="flex gap-2 items-center">
+          <input type="color" id="income_category_color" name="color" value="#10B981" 
+                 class="w-12 h-12 rounded-lg border-2 border-base-300">
+          <span class="text-sm text-base-content/70">Escolha uma cor para identificar a categoria</span>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeIncomeCategoryModal()">Cancelar</button>
+      <button class="btn btn-secondary" onclick="submitIncomeCategory()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Criar Categoria
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Income Modal -->
+<div id="editIncomeModal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="pencil" class="w-5 h-5 inline-block mr-2"></i>
+      Editar Receita
+    </h3>
+    
+    <form id="editIncomeForm" class="space-y-4">
+      <input type="hidden" id="edit_income_id" name="income_id">
+      
+      <!-- Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição *</span>
+        </label>
+        <input type="text" id="edit_income_description" name="description" placeholder="Ex: Salário, Freelance..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Detailed Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição Detalhada</span>
+        </label>
+        <textarea id="edit_income_detailed_description" name="detailed_description" 
+                  placeholder="Informações adicionais sobre a receita..." 
+                  class="textarea textarea-bordered w-full h-20"></textarea>
+      </div>
+      
+      <!-- Date and Amount Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Data do Recebimento *</span>
+          </label>
+          <input type="date" id="edit_income_received_at" name="received_at" 
+                 class="input input-bordered w-full" required>
+        </div>
+        
+        <!-- Amount -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Valor (R$) *</span>
+          </label>
+          <input type="number" id="edit_income_amount" name="amount" step="0.01" min="0" 
+                 placeholder="0,00" class="input input-bordered w-full" required>
+        </div>
+      </div>
+      
+      <!-- Category -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Categoria</span>
+        </label>
+        <div class="flex gap-2">
+          <select id="edit_income_category" name="category" class="select select-bordered flex-1">
+            <option value="">Selecione uma categoria</option>
+            {% for category in income_categories %}
+              <option value="{{ category.id }}" data-color="{{ category.color }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-ghost btn-xs" onclick="editSelectedIncomeCategory()" title="Editar categoria selecionada">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+          </button>
+          <button type="button" class="btn btn-outline" onclick="openIncomeCategoryModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeEditIncomeModal()">Cancelar</button>
+      <button class="btn btn-error btn-outline" onclick="deleteIncome()">
+        <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+        Excluir
+      </button>
+      <button class="btn btn-secondary" onclick="submitEditIncome()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Salvar Alterações
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/finance_dashboard.js' %}"></script>
+{% endblock %}

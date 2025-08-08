@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+  /* Custom styles for sidebar */
+  aside {
+    position: relative;
+    min-height: 100vh;
+  }
+  
+  /* Active navigation item */
+  .menu li a.active,
+  .menu li a:active {
+    background-color: hsl(var(--p));
+    color: hsl(var(--pc));
+  }
+  
+  /* Smooth transitions */
+  .menu li a {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  /* Ensure sidebar is always visible on desktop */
+  @media (min-width: 1024px) {
+    .finance-sidebar {
+      display: block !important;
+    }
+  }
+</style>
+{% block finance_head %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen">
+  <!-- Side Navigation - Always visible on desktop -->
+  <aside class="w-64 bg-base-100 shadow-lg hidden lg:block">
+    <!-- Logo/Header -->
+    <div class="p-6 border-b border-base-300">
+      <h1 class="text-2xl font-bold text-primary flex items-center">
+        <i data-lucide="bar-chart-3" class="w-8 h-8 mr-3"></i>
+        VihOhtLife
+      </h1>
+      <p class="text-sm text-base-content/70 mt-1">Gestão Financeira</p>
+    </div>
+    
+    <!-- Navigation Menu -->
+    <nav class="p-4">
+      <ul class="menu menu-vertical w-full space-y-2">
+        <!-- Página Principal -->
+        <li>
+          <a href="{% url 'landingpage' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group">
+            <i data-lucide="home" class="w-5 h-5 mr-3 text-base-content/70 group-hover:text-primary"></i>
+            <span class="font-medium">Página Principal</span>
+          </a>
+        </li>
+        
+        <!-- Gastos -->
+        <li>
+          <a href="{% url 'finance_manager:dashboard' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group bg-primary text-primary-content">
+            <i data-lucide="credit-card" class="w-5 h-5 mr-3"></i>
+            <span class="font-medium">Gastos</span>
+          </a>
+          
+          <!-- Submenu for Gastos -->
+          <ul class="ml-6 mt-2 space-y-1">
+            <li>
+              <a href="#" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
+                <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                Adicionar Gasto
+              </a>
+            </li>
+            <li>
+              <a href="#" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
+                <i data-lucide="list" class="w-4 h-4 mr-2"></i>
+                Ver Gastos
+              </a>
+            </li>
+            <li>
+              <a href="#" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
+                <i data-lucide="pie-chart" class="w-4 h-4 mr-2"></i>
+                Relatórios
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+    
+    <!-- User Info at Bottom -->
+    <div class="absolute bottom-0 left-0 right-0 w-64 p-4 border-t border-base-300 bg-base-100">
+      {% if user.is_authenticated %}
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
+            <i data-lucide="user" class="w-5 h-5"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-base-content truncate">{{ user.username }}</p>
+            <p class="text-xs text-base-content/70 truncate">{{ user.email }}</p>
+          </div>
+          <div class="dropdown dropdown-top dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
+              <i data-lucide="more-vertical" class="w-4 h-4"></i>
+            </div>
+            <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 mb-2">
+              <li><a href="{% url 'authentication:profile' %}">
+                <i data-lucide="user" class="w-4 h-4"></i>
+                Perfil
+              </a></li>
+              <li><a href="{% url 'authentication:logout' %}">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+                Sair
+              </a></li>
+            </ul>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Mobile Menu Toggle (for smaller screens) -->
+  <div class="lg:hidden">
+    <div class="drawer">
+      <input id="mobile-drawer" type="checkbox" class="drawer-toggle" />
+      <div class="drawer-content">
+        <!-- Mobile Top Bar -->
+        <div class="navbar bg-base-100 shadow-sm">
+          <div class="flex-none">
+            <label for="mobile-drawer" class="btn btn-square btn-ghost">
+              <i data-lucide="menu" class="w-6 h-6"></i>
+            </label>
+          </div>
+          <div class="flex-1">
+            <h1 class="text-xl font-bold text-primary">VihOhtLife</h1>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Mobile Sidebar -->
+      <div class="drawer-side">
+        <label for="mobile-drawer" class="drawer-overlay"></label>
+        <aside class="min-h-full w-64 bg-base-100">
+          <!-- Same content as desktop sidebar -->
+          <div class="p-6 border-b border-base-300">
+            <h1 class="text-2xl font-bold text-primary flex items-center">
+              <i data-lucide="bar-chart-3" class="w-8 h-8 mr-3"></i>
+              VihOhtLife
+            </h1>
+            <p class="text-sm text-base-content/70 mt-1">Gestão Financeira</p>
+          </div>
+          
+          <nav class="p-4">
+            <ul class="menu menu-vertical w-full space-y-2">
+              <li>
+                <a href="{% url 'landingpage' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group">
+                  <i data-lucide="home" class="w-5 h-5 mr-3 text-base-content/70 group-hover:text-primary"></i>
+                  <span class="font-medium">Página Principal</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'finance_manager:dashboard' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group bg-primary text-primary-content">
+                  <i data-lucide="credit-card" class="w-5 h-5 mr-3"></i>
+                  <span class="font-medium">Gastos</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 bg-base-200">
+    <!-- Content -->
+    <div class="p-6">
+      {% block finance_content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endblock %}

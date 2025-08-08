@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />        
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adm - VihOhtLife</title>
+    <!-- Gerado por https://daisyui.com/docs/cdn/ -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@5"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    {% load static %}
+    <link
+      href"{% static 'jcss/toast_message.css' %}",
+      rel="stylesheet",
+      type="text/css"
+    />
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="min-h-screen">
+    {% block content %}{% endblock %}
+    
+    <!-- Toast Messages Container -->
+    {% if messages %}
+      <div class="toast toast-top toast-end z-50">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} shadow-lg animate-fade-in" id="toast-{{ forloop.counter }}">
+            <div class="flex items-center">
+              {% if message.tags == 'success' %}
+                <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
+              {% elif message.tags == 'error' %}
+                <i data-lucide="x-circle" class="w-5 h-5 mr-2"></i>
+              {% elif message.tags == 'warning' %}
+                <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i>
+              {% else %}
+                <i data-lucide="info" class="w-5 h-5 mr-2"></i>
+              {% endif %}
+              <span>{{ message }}</span>
+              <button onclick="dismissToast('toast-{{ forloop.counter }}')" class="btn btn-ghost btn-xs ml-2">
+                <i data-lucide="x" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="{% static 'js/toast_message.js' %}"></script>
+    <script>
+      lucide.createIcons()
+    </script>
+  </body>
+</html>

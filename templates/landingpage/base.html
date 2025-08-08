@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-base-200 p-4">
+  <div class="max-w-7xl mx-auto">
+    <!-- Navigation -->
+    <div class="navbar bg-base-100 rounded-lg shadow-lg mb-8">
+      <div class="flex-1">
+        <h2 class="text-xl font-bold text-primary"><a href="{% url 'landingpage' %}">VihOhtLife</a></h2>
+      </div>
+      <div class="flex-none flex items-center">
+        {% if user.is_authenticated %}
+          <!-- Username Display -->
+          <div class="mr-4 hidden sm:flex items-center">
+            <span class="text-sm text-base-content/70 mr-2">Olá,</span>
+            <span class="text-sm font-semibold text-primary">{{ user.username }}</span>
+          </div>
+          
+          <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+              <div class="w-8 rounded-full bg-primary text-primary-content flex items-center justify-center" style="display: flex !important;">
+                <i data-lucide="user" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+              <li><span class="text-sm text-base-content/70">{{ user.username }}</span></li>
+              <li><a href="{% url 'authentication:profile' %}">Perfil</a></li>
+              <li><a href="{% url 'authentication:logout' %}">Sair</a></li>
+            </ul>
+          </div>
+        {% else %}
+          <a href="{% url 'authentication:login' %}" class="btn btn-primary btn-sm">
+            <i data-lucide="log-in" class="w-4 h-4 mr-1"></i>
+            Entrar
+          </a>
+        {% endif %}
+      </div>
+    </div>
+    
+    {% block dashboard_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

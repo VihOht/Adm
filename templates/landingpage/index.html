@@ -1,0 +1,123 @@
+{% extends 'landingpage/base.html' %}
+
+{% block dashboard_content %}
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-primary mb-4">
+        Meu Painel Administrativo
+      </h1>
+      <p class="text-lg text-base-content/70">
+        Sistema pessoal de gestão e organização
+      </p>
+      
+      <!-- Test Messages Button -->
+      <div class="mt-4">
+        <a href="{% url 'test_messages' %}" class="btn btn-outline btn-sm">
+          <i data-lucide="message-circle" class="w-4 h-4 mr-1"></i>
+          Testar Mensagens
+        </a>
+      </div>
+    </div>
+
+    <!-- Full Width Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Documents Card -->
+      <div class="card bg-base-100 shadow-lg h-full">
+        <div class="card-body">
+          <h2 class="card-title text-xl">
+            <i data-lucide="folder" class="w-6 h-6"></i>
+            Documentos
+          </h2>
+          <p class="text-sm text-base-content/70 flex-grow">
+            Organize e gerencie seus documentos importantes
+          </p>
+          <div class="card-actions justify-end">
+            <button class="btn btn-primary btn-sm">Acessar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar Card -->
+      <div class="card bg-base-100 shadow-lg h-full">
+        <div class="card-body">
+          <h2 class="card-title text-xl">
+            <i data-lucide="calendar" class="w-6 h-6"></i>
+            Agenda
+          </h2>
+          <p class="text-sm text-base-content/70 flex-grow">
+            Controle suas tarefas e compromissos diários
+          </p>
+          <div class="card-actions justify-end">
+            <button class="btn btn-primary btn-sm">Acessar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Manager Card -->
+      <div class="card bg-base-100 shadow-lg h-full">
+        <div class="card-body">
+          <h2 class="card-title text-xl">
+            <i data-lucide="dollar-sign" class="w-6 h-6"></i>
+            Financeiro
+          </h2>
+          <p class="text-sm text-base-content/70 flex-grow">
+            Gerencie suas finanças pessoais e orçamentos
+          </p>
+          <div class="card-actions justify-end">
+            <a href="{% url 'finance_manager:dashboard' %}" class="btn btn-primary btn-sm">Gerenciar</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Card -->
+      <div class="card bg-base-100 shadow-lg h-full">
+        <div class="card-body">
+          <h2 class="card-title text-xl">
+            <i data-lucide="settings" class="w-6 h-6"></i>
+            Configurações
+          </h2>
+          <p class="text-sm text-base-content/70 flex-grow">
+            Personalize o sistema conforme suas necessidades
+          </p>
+          <div class="card-actions justify-end">
+            <button class="btn btn-primary btn-sm">Configurar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="stat bg-base-100 shadow-lg rounded-lg">
+        <div class="stat-figure text-primary">
+          <i data-lucide="file-text" class="w-8 h-8"></i>
+        </div>
+        <div class="stat-title">Documentos</div>
+        <div class="stat-value text-primary">0</div>
+        <div class="stat-desc">Total de arquivos</div>
+      </div>
+      
+      <div class="stat bg-base-100 shadow-lg rounded-lg">
+        <div class="stat-figure text-secondary">
+          <i data-lucide="calendar-check" class="w-8 h-8"></i>
+        </div>
+        <div class="stat-title">Tarefas</div>
+        <div class="stat-value text-secondary">0</div>
+        <div class="stat-desc">Pendentes hoje</div>
+      </div>
+      
+      <div class="stat bg-base-100 shadow-lg rounded-lg">
+        <div class="stat-figure text-accent">
+          <i data-lucide="trending-up" class="w-8 h-8"></i>
+        </div>
+        <div class="stat-title">Saldo</div>
+        <div class="stat-value text-accent">R$ 0,00</div>
+        <div class="stat-desc">Balanço atual</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-sm text-base-content/50">
+      VihOhtLife - Sistema Pessoal de Administração
+    </div>
+{% endblock %}
