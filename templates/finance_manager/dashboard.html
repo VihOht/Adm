@@ -3,7 +3,7 @@
 {% load mathfilters %}
 
 {% block finance_head %}
-<link rel="stylesheet" href="{% static 'css/finance_dashboard.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/finance_dashboard.css' %}">
 <script>
   // Set URLs and CSRF token for JavaScript to use
   window.createExpenseUrl = '{% url "finance_manager:create_expense" %}';
@@ -614,5 +614,5 @@
   </div>
 </div>
 
-<script src="{% static 'js/finance_dashboard.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/finance_dashboard.js' %}"></script>
 {% endblock %}

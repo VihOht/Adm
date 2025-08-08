@@ -35,7 +35,7 @@ ALLOWED_HOSTS = [
 
 
 mimetypes.add_type("text/css", ".css", True)
-mimetypes.add_type("aplication/javascript", ".js", True)
+mimetypes.add_type("application/javascript", ".js", True)
 
 CSRF_TRUSTED_ORIGINS = ["https://vihohtlife.up.railway.app"]
 
