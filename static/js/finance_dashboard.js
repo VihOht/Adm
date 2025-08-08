@@ -10,7 +10,9 @@ function openExpenseModal() {
 
 function closeExpenseModal() {
   document.getElementById('expenseModal').classList.remove('modal-open');
-  document.getElementById('expenseForm').reset();
+  setTimeout(function() {
+    document.getElementById('expenseForm').reset();
+  }, 200)
 }
 
 function openCategoryModal() {
@@ -28,15 +30,19 @@ function closeCategoryModal() {
   const categoryModal = document.getElementById('categoryModal');
   categoryModal.classList.remove('modal-open');
   categoryModal.style.zIndex = ''; // Reset z-index
+
+  setTimeout(function() { 
   document.getElementById('categoryForm').reset();
   
   // Reset modal to original state
-  const modalTitle = document.querySelector('#categoryModal h3');
-  modalTitle.innerHTML = '<i data-lucide="tag" class="w-5 h-5 inline-block mr-2"></i>Nova Categoria';
-  
-  const submitButton = document.querySelector('#categoryModal .btn-primary');
-  submitButton.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i>Criar Categoria';
-  
+    const modalTitle = document.querySelector('#categoryModal h3');
+    modalTitle.innerHTML = '<i data-lucide="tag" class="w-5 h-5 inline-block mr-2"></i>Nova Categoria';
+    
+    const submitButton = document.querySelector('#categoryModal .btn-primary');
+    submitButton.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i>Criar Categoria';  
+
+    lucide.createIcons()
+
   // Remove editing ID
   document.getElementById('categoryForm').removeAttribute('data-editing-id');
   
@@ -45,6 +51,13 @@ function closeCategoryModal() {
   if (addCategoryButton) {
     addCategoryButton.style.display = '';
   }
+  
+  // Hide the delete button when not editing
+  const deleteCategoryBtn = document.getElementById('deleteCategoryBtn');
+  if (deleteCategoryBtn) {
+    deleteCategoryBtn.style.display = 'none';
+  }
+  }, 200) 
 }
 
 function openEditExpenseModal(id, description, detailedDescription, spentAt, amount, categoryId) {
@@ -61,7 +74,9 @@ function openEditExpenseModal(id, description, detailedDescription, spentAt, amo
 
 function closeEditExpenseModal() {
   document.getElementById('editExpenseModal').classList.remove('modal-open');
-  document.getElementById('editExpenseForm').reset();
+  setTimeout(function() {
+    document.getElementById('editExpenseForm').reset();
+  }, 200)
 }
 
 // Income Modal Functions
@@ -73,7 +88,9 @@ function openIncomeModal() {
 
 function closeIncomeModal() {
   document.getElementById('incomeModal').classList.remove('modal-open');
-  document.getElementById('incomeForm').reset();
+  setTimeout(function() {
+    document.getElementById('incomeForm').reset();
+  }, 200)
 }
 
 function openIncomeCategoryModal() {
@@ -91,14 +108,18 @@ function closeIncomeCategoryModal() {
   const incomeCategoryModal = document.getElementById('incomeCategoryModal');
   incomeCategoryModal.classList.remove('modal-open');
   incomeCategoryModal.style.zIndex = ''; // Reset z-index
-  document.getElementById('incomeCategoryForm').reset();
-  
-  // Reset modal to original state
-  const modalTitle = document.querySelector('#incomeCategoryModal h3');
-  modalTitle.innerHTML = '<i data-lucide="dollar-sign" class="w-5 h-5 inline-block mr-2"></i>Nova Categoria de Renda';
-  
-  const submitButton = document.querySelector('#incomeCategoryModal .btn-primary');
-  submitButton.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i>Criar Categoria';
+
+  setTimeout(function(){
+    document.getElementById('incomeCategoryForm').reset();
+    
+    // Reset modal to original state
+    const modalTitle = document.querySelector('#incomeCategoryModal h3');
+    modalTitle.innerHTML = '<i data-lucide="dollar-sign" class="w-5 h-5 inline-block mr-2"></i>Nova Categoria de Renda';
+    
+    const submitButton = document.querySelector('#incomeCategoryModal .btn-secondary');
+    submitButton.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i>Criar Categoria';
+
+    lucide.createIcons()
   
   // Remove editing ID
   document.getElementById('incomeCategoryForm').removeAttribute('data-editing-id');
@@ -107,7 +128,14 @@ function closeIncomeCategoryModal() {
   const addCategoryButton = document.querySelector('#incomeCategoryModal .btn-outline');
   if (addCategoryButton) {
     addCategoryButton.style.display = '';
+  } 
+  
+  // Hide the delete button when not editing
+  const deleteIncomeCategoryBtn = document.getElementById('deleteIncomeCategoryBtn');
+  if (deleteIncomeCategoryBtn) {
+    deleteIncomeCategoryBtn.style.display = 'none';
   }
+  }, 200)
 }
 
 function openEditIncomeModal(id, description, detailedDescription, receivedAt, amount, categoryId) {
@@ -124,7 +152,9 @@ function openEditIncomeModal(id, description, detailedDescription, receivedAt, a
 
 function closeEditIncomeModal() {
   document.getElementById('editIncomeModal').classList.remove('modal-open');
-  document.getElementById('editIncomeForm').reset();
+  setTimeout(function() {
+    document.getElementById('editIncomeForm').reset();
+  }, 200)
 }
 
 // Form submission functions
@@ -317,13 +347,9 @@ async function submitEditExpense() {
   }
 }
 
-async function deleteExpense(expense_id = null) {
-  if (expense_id != null){
-    const expenseId = expense_id
-  }
-  else{
-    const expenseId = document.getElementById('edit_expense_id').value;
-  } 
+async function deleteExpense() {
+
+  const expenseId = document.getElementById('edit_expense_id').value;
   
   if (!confirm('Tem certeza que deseja excluir este gasto? Esta ação não pode ser desfeita.')) {
     return;
@@ -452,7 +478,8 @@ async function submitIncomeCategory() {
         'X-CSRFToken': getCSRFToken()
       },
       body: JSON.stringify(data)
-    });
+    }
+  );
     
     const result = await response.json();
     
@@ -646,6 +673,8 @@ function editSelectedCategory() {
   // Change button text
   const submitButton = document.querySelector('#categoryModal .btn-primary');
   submitButton.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i>Atualizar Categoria';
+
+  lucide.createIcons()
   
   // Store the category ID for updating
   document.getElementById('categoryForm').setAttribute('data-editing-id', selectedCategoryId);
@@ -654,6 +683,69 @@ function editSelectedCategory() {
   const addCategoryButton = document.querySelector('#categoryModal .btn-outline');
   if (addCategoryButton && addCategoryButton.onclick && addCategoryButton.onclick.toString().includes('openCategoryModal')) {
     addCategoryButton.style.display = 'none';
+  }
+  
+  // Show the delete button in edit mode
+  const deleteCategoryBtn = document.getElementById('deleteCategoryBtn');
+  if (deleteCategoryBtn) {
+    deleteCategoryBtn.style.display = 'inline-flex';
+  }
+}
+
+// Delete category function with warning
+async function deleteCategory() {
+  const form = document.getElementById('categoryForm');
+  const editingId = form.getAttribute('data-editing-id');
+  
+  if (!editingId) {
+    if (typeof toastError !== 'undefined') {
+      toastError('Nenhuma categoria selecionada para exclusão');
+    } else {
+      alert('Nenhuma categoria selecionada para exclusão');
+    }
+    return;
+  }
+  
+  // Show warning about related expenses
+  const confirmMessage = `⚠️ ATENÇÃO: Ao excluir esta categoria, TODOS os gastos relacionados a ela também serão excluídos permanentemente!\n\nEsta ação não pode ser desfeita.\n\nTem certeza que deseja continuar?`;
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/finance/category/${editingId}/delete/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCSRFToken()
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      if (typeof toastSuccess !== 'undefined') {
+        toastSuccess(result.message);
+      } else {
+        alert(result.message);
+      }
+      closeCategoryModal();
+      // Reload page to reflect deletion
+      window.location.reload();
+    } else {
+      if (typeof toastError !== 'undefined') {
+        toastError(result.message);
+      } else {
+        alert('Erro: ' + result.message);
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    if (typeof toastError !== 'undefined') {
+      toastError('Erro ao conectar com o servidor');
+    } else {
+      alert('Erro ao conectar com o servidor');
+    }
   }
 }
 
@@ -760,14 +852,16 @@ function editSelectedIncomeCategory() {
   document.getElementById('income_category_name').value = categoryName;
   document.getElementById('income_category_description').value = `Categoria para ${categoryName}`; // Auto-complete description
   document.getElementById('income_category_color').value = categoryColor;
-  
+
   // Change the modal title to indicate editing
   const modalTitle = document.querySelector('#incomeCategoryModal h3');
   modalTitle.innerHTML = '<i data-lucide="pencil" class="w-5 h-5 inline-block mr-2"></i>Editar Categoria de Renda';
   
   // Change button text
-  const submitButton = document.querySelector('#incomeCategoryModal .btn-primary');
+  const submitButton = document.querySelector('#incomeCategoryModal .btn-secondary');
   submitButton.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i>Atualizar Categoria';
+  
+  lucide.createIcons()
   
   // Store the category ID for updating
   document.getElementById('incomeCategoryForm').setAttribute('data-editing-id', selectedCategoryId);
@@ -776,5 +870,68 @@ function editSelectedIncomeCategory() {
   const addCategoryButton = document.querySelector('#incomeCategoryModal .btn-outline');
   if (addCategoryButton && addCategoryButton.onclick && addCategoryButton.onclick.toString().includes('openIncomeCategoryModal')) {
     addCategoryButton.style.display = 'none';
+  }
+  
+  // Show the delete button in edit mode
+  const deleteIncomeCategoryBtn = document.getElementById('deleteIncomeCategoryBtn');
+  if (deleteIncomeCategoryBtn) {
+    deleteIncomeCategoryBtn.style.display = 'inline-flex';
+  }
+}
+
+// Delete income category function with warning
+async function deleteIncomeCategory() {
+  const form = document.getElementById('incomeCategoryForm');
+  const editingId = form.getAttribute('data-editing-id');
+  
+  if (!editingId) {
+    if (typeof toastError !== 'undefined') {
+      toastError('Nenhuma categoria selecionada para exclusão');
+    } else {
+      alert('Nenhuma categoria selecionada para exclusão');
+    }
+    return;
+  }
+  
+  // Show warning about related incomes
+  const confirmMessage = `⚠️ ATENÇÃO: Ao excluir esta categoria de renda, TODAS as receitas relacionadas a ela também serão excluídas permanentemente!\n\nEsta ação não pode ser desfeita.\n\nTem certeza que deseja continuar?`;
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/finance/income_category/${editingId}/delete/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCSRFToken()
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      if (typeof toastSuccess !== 'undefined') {
+        toastSuccess(result.message);
+      } else {
+        alert(result.message);
+      }
+      closeIncomeCategoryModal();
+      // Reload page to reflect deletion
+      window.location.reload();
+    } else {
+      if (typeof toastError !== 'undefined') {
+        toastError(result.message);
+      } else {
+        alert('Erro: ' + result.message);
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    if (typeof toastError !== 'undefined') {
+      toastError('Erro ao conectar com o servidor');
+    } else {
+      alert('Erro ao conectar com o servidor');
+    }
   }
 }

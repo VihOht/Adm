@@ -15,12 +15,27 @@ from finance_manager.models import ExpenseCategory, Expenses, IncomeCategorys, I
 def dashboard(request):
     """Finance manager dashboard view"""
     expenses = Expenses.objects.filter(user=request.user).order_by("-spent_at")[:5]
+    expenses_this_month = Expenses.objects.filter(
+        user=request.user,
+        spent_at__year=datetime.now().year,
+        spent_at__month=datetime.now().month,
+    )
     incomes = Incomes.objects.filter(user=request.user).order_by("-received_at")[:5]
     expense_categories = ExpenseCategory.objects.all()
     income_categories = IncomeCategorys.objects.all()
 
     total_expenses = sum([x.amount for x in Expenses.objects.filter(user=request.user)])
     total_incomes = sum([x.amount for x in Incomes.objects.filter(user=request.user)])
+
+    range_of_days = "No expenses this month"
+    total_expenses_this_month = 0
+    daily_mean = 0
+    if expenses_this_month:
+        range_of_days = f"Últimos {datetime.now().day} dias"
+        total_expenses_this_month = sum([x.amount for x in expenses_this_month])
+        daily_mean = total_expenses_this_month // datetime.now().day
+
+    total_amount = total_incomes - total_expenses
 
     return render(
         request,
@@ -31,8 +46,10 @@ def dashboard(request):
             "expense_categories": expense_categories,
             "income_categories": income_categories,
             "categories": expense_categories,  # For backward compatibility
-            "total_expenses": f"{total_expenses // 100},{total_expenses % 100:02n}",
-            "total_incomes": f"{total_incomes // 100},{total_incomes % 100:02n}",
+            "total_expenses_this_month": f"{total_expenses_this_month // 100},{total_expenses_this_month % 100:02n}",
+            "total_amount": f"{total_amount // 100},{total_amount % 100:02n}",
+            "range_of_days": range_of_days,
+            "daily_mean": f"{daily_mean // 100},{daily_mean % 100:02n}",
         },
     )
 
@@ -148,6 +165,41 @@ def edit_category(request, category_id):
 
 @login_required
 @require_POST
+def delete_category(request, category_id):
+    """Delete an existing expense category and all related expenses via AJAX"""
+    try:
+        category = get_object_or_404(ExpenseCategory, id=category_id)
+
+        # Count related expenses before deletion
+        related_expenses_count = Expenses.objects.filter(category=category).count()
+
+        category_name = category.name
+
+        # Delete the category (this will cascade delete related expenses due to ForeignKey)
+        category.delete()
+
+        message = f"Categoria '{category_name}' excluída com sucesso!"
+        if related_expenses_count > 0:
+            message += f" {related_expenses_count} gasto(s) relacionado(s) também foram excluídos."
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": message,
+                "deleted_expenses_count": related_expenses_count,
+            }
+        )
+
+    except ExpenseCategory.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Categoria não encontrada"})
+    except Exception as e:
+        return JsonResponse(
+            {"success": False, "message": f"Erro ao excluir categoria: {str(e)}"}
+        )
+
+
+@login_required
+@require_POST
 def edit_income_category(request, category_id):
     """Edit an existing income category via AJAX"""
     try:
@@ -182,6 +234,46 @@ def edit_income_category(request, category_id):
             {
                 "success": False,
                 "message": f"Erro ao atualizar categoria de renda: {str(e)}",
+            }
+        )
+
+
+@login_required
+@require_POST
+def delete_income_category(request, category_id):
+    """Delete an existing income category and all related incomes via AJAX"""
+    try:
+        category = get_object_or_404(IncomeCategorys, id=category_id)
+
+        # Count related incomes before deletion
+        related_incomes_count = Incomes.objects.filter(category=category).count()
+
+        category_name = category.name
+
+        # Delete the category (this will cascade delete related incomes due to ForeignKey)
+        category.delete()
+
+        message = f"Categoria de renda '{category_name}' excluída com sucesso!"
+        if related_incomes_count > 0:
+            message += f" {related_incomes_count} receita(s) relacionada(s) também foram excluídas."
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": message,
+                "deleted_incomes_count": related_incomes_count,
+            }
+        )
+
+    except IncomeCategorys.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "message": "Categoria de renda não encontrada"}
+        )
+    except Exception as e:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": f"Erro ao excluir categoria de renda: {str(e)}",
             }
         )
 

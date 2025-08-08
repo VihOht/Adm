@@ -13,6 +13,11 @@ urlpatterns = [
     ),
     path("category/create/", views.create_category, name="create_category"),
     path("category/<int:category_id>/edit/", views.edit_category, name="edit_category"),
+    path(
+        "category/<int:category_id>/delete/",
+        views.delete_category,
+        name="delete_category",
+    ),
     path("income/create/", views.create_income, name="create_income"),
     path("income/<int:income_id>/edit/", views.edit_income, name="edit_income"),
     path("income/<int:income_id>/delete/", views.delete_income, name="delete_income"),
@@ -25,5 +30,10 @@ urlpatterns = [
         "income_category/<int:category_id>/edit/",
         views.edit_income_category,
         name="edit_income_category",
+    ),
+    path(
+        "income_category/<int:category_id>/delete/",
+        views.delete_income_category,
+        name="delete_income_category",
     ),
 ]
