@@ -108,10 +108,10 @@
       
       <div class="stat bg-base-100 shadow-lg rounded-lg">
         <div class="stat-figure text-accent">
-          <i data-lucide="trending-up" class="w-8 h-8"></i>
+          <i data-lucide="{% if well_amount %}trending-up{% else %}trending-down{% endif %}" class="w-8 h-8"></i>
         </div>
         <div class="stat-title">Saldo</div>
-        <div class="stat-value text-accent">R$ 0,00</div>
+        <div class="stat-value {% if well_amount %}text-accent{% else %} text-error{% endif %}">R$ {{total_amount}}</div>
         <div class="stat-desc">Balanço atual</div>
       </div>
     </div>
