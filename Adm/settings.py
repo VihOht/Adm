@@ -26,7 +26,11 @@ SECRET_KEY = "django-insecure-^8rz7dpvuzj$=r06o(i%=@03v3#*0m8j$uo4^opujoqq156n#*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "false") == "true"
 
-ALLOWED_HOSTS = ["localhost", "vihohtlife.up.railway.app"]
+ALLOWED_HOSTS = [
+    "localhost",
+    "vihohtlife.up.railway.app",
+    "https://vihohtlife.up.railway.app",
+]
 
 
 # Application definition
