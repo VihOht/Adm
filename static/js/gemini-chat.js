@@ -34,6 +34,7 @@ function addMessage(message, sender) {
     bubbleDiv.className = sender === 'user' ? 'chat-bubble chat-bubble-secondary' : 'chat-bubble chat-bubble-primary';
     bubbleDiv.textContent = message;
     
+    
     messageDiv.appendChild(bubbleDiv);
     chatContainer.appendChild(messageDiv);
     

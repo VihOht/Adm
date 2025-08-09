@@ -20,11 +20,23 @@ def get_response(request):
         data = json.loads(request.body)
         prompt = "You are a finance manager, you have acesse to the most data informations about expenses and incomes of the user. Your objective is to aid him managing their finance and help them with helpful brief advices (only when he ask), try to keep it as objective as possible"
         expenses = [
-            [x.category.name if x.category else "no category", x.amount, x.spent_at]
+            [
+                x.category.name if x.category else "no category",
+                x.amount,
+                x.description,
+                x.detailed_description,
+                x.spent_at,
+            ]
             for x in Expenses.objects.filter(user=request.user)
         ]
         incomes = [
-            [x.category.name if x.category else "no category", x.amount, x.received_at]
+            [
+                x.category.name if x.category else "no category",
+                x.amount,
+                x.description,
+                x.detailed_description,
+                x.received_at,
+            ]
             for x in Incomes.objects.filter(user=request.user)
         ]
         total = {"expenses": expenses, "incomes": incomes}
