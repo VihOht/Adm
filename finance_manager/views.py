@@ -55,6 +55,79 @@ def dashboard(request):
 
 
 @login_required
+def transactions(request):
+    """Transactions list view showing all incomes and expenses"""
+    # Get all user's transactions
+    expenses = Expenses.objects.filter(user=request.user).order_by("-spent_at")
+    incomes = Incomes.objects.filter(user=request.user).order_by("-received_at")
+
+    # Create combined transactions list ordered by date (most recent first)
+    all_transactions = []
+
+    # Add expenses with type indicator
+    for expense in expenses:
+        all_transactions.append(
+            {
+                "type": "expense",
+                "id": expense.id,
+                "description": expense.description,
+                "detailed_description": expense.detailed_description,
+                "amount": expense.amount,
+                "date": expense.spent_at,
+                "category": expense.category,
+                "object": expense,
+            }
+        )
+
+    # Add incomes with type indicator
+    for income in incomes:
+        all_transactions.append(
+            {
+                "type": "income",
+                "id": income.id,
+                "description": income.description,
+                "detailed_description": income.detailed_description,
+                "amount": income.amount,
+                "date": income.received_at,
+                "category": income.category,
+                "object": income,
+            }
+        )
+
+    # Sort all transactions by date (most recent first)
+    all_transactions.sort(key=lambda x: x["date"], reverse=True)
+
+    # Get categories for editing
+    expense_categories = ExpenseCategory.objects.all()
+    income_categories = IncomeCategorys.objects.all()
+
+    # Calculate totals
+    total_expenses = sum([x.amount for x in expenses])
+    total_incomes = sum([x.amount for x in incomes])
+    balance = total_incomes - total_expenses
+
+    # Format amounts for display
+    def format_amount(amount):
+        return f"{amount // 100},{amount % 100:02n}"
+
+    return render(
+        request,
+        "finance_manager/transactions.html",
+        {
+            "expenses": expenses,
+            "incomes": incomes,
+            "all_transactions": all_transactions,
+            "expense_categories": expense_categories,
+            "income_categories": income_categories,
+            "total_expenses": format_amount(total_expenses),
+            "total_incomes": format_amount(total_incomes),
+            "balance": format_amount(balance),
+            "balance_raw": balance,
+        },
+    )
+
+
+@login_required
 @require_POST
 def create_expense(request):
     """Create a new expense via AJAX"""

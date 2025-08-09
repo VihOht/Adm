@@ -4,8 +4,12 @@ django==5.2.3
 django-colorfield==0.14.0
 django-mathfilters==1.0.0
 gunicorn==23.0.0
+matplotlib==3.8.4
+numpy==1.26.4
 packaging==25.0
+pandas==2.2.2
 pillow==11.3.0
 psycopg2-binary==2.9.9
+seaborn==0.13.2
 sqlparse==0.5.3
 whitenoise==6.9.0

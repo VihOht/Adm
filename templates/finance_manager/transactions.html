@@ -1,0 +1,400 @@
+{% extends "finance_manager/base.html" %}
+{% load static %}
+
+{% block finance_head %}
+<script src="{% static 'js/finance_dashboard.js' %}"></script>
+<style>
+  .transaction-card {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .transaction-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  }
+  
+  .expense-border {
+    border-left: 4px solid #ef4444;
+  }
+  
+  .income-border {
+    border-left: 4px solid #10b981;
+  }
+  
+  .amount-expense {
+    color: #ef4444;
+  }
+  
+  .amount-income {
+    color: #10b981;
+  }
+  
+  .category-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+  }
+</style>
+
+<script>
+  // Set "Transações" as active page
+  window.addEventListener("load", function() {
+    un_l = document.getElementById("s_items")
+    actual = un_l.children[1]
+    actual.children[0].classList.add("bg-primary", "text-primary-content")
+    sub_actual = actual.children[1]
+    sub_actual.children[0].children[0].classList.add("bg-secondary", "text-secondary-content")
+  })
+
+  // Set URLs and CSRF token for JavaScript to use
+  window.createExpenseUrl = '{% url "finance_manager:create_expense" %}';
+  window.createCategoryUrl = '{% url "finance_manager:create_category" %}';
+  window.createIncomeUrl = '{% url "finance_manager:create_income" %}';     
+  window.createIncomeCategoryUrl = '{% url "finance_manager:create_income_category" %}';
+  window.editExpenseUrl = '/finance/expense/'; // Will append ID in JavaScript
+  window.deleteExpenseUrl = '/finance/expense/'; // Will append ID in JavaScript
+  window.editIncomeUrl = '/finance/income/'; // Will append ID in JavaScript
+  window.deleteIncomeUrl = '/finance/income/'; // Will append ID in JavaScript
+  window.csrfToken = '{{ csrf_token }}';
+</script>
+{% endblock %}
+
+{% block finance_content %}
+<div class="max-w-7xl mx-auto">
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-base-content mb-2">
+      <i data-lucide="list" class="w-8 h-8 inline-block mr-3"></i>
+      Todas as Transações
+    </h1>
+    <p class="text-base-content/70">Visualize e gerencie todas as suas receitas e gastos</p>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-success">
+        <i data-lucide="trending-up" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Total de Receitas</div>
+      <div class="stat-value text-success">R$ {{ total_incomes }}</div>
+      <div class="stat-desc">{{ incomes|length }} transação{% if incomes|length != 1 %}ões{% endif %}</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-error">
+        <i data-lucide="trending-down" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Total de Gastos</div>
+      <div class="stat-value text-error">R$ {{ total_expenses }}</div>
+      <div class="stat-desc">{{ expenses|length }} transação{% if expenses|length != 1 %}ões{% endif %}</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure {% if balance_raw >= 0 %}text-success{% else %}text-error{% endif %}">
+        <i data-lucide="wallet" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Saldo Total</div>
+      <div class="stat-value {% if balance_raw >= 0 %}text-success{% else %}text-error{% endif %}">R$ {{ balance }}</div>
+      <div class="stat-desc">{% if balance_raw >= 0 %}Saldo positivo{% else %}Saldo negativo{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="flex flex-wrap gap-4 mb-8">
+    <button class="btn btn-success" onclick="openIncomeModal()">
+      <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+      Nova Receita
+    </button>
+    <button class="btn btn-error" onclick="openExpenseModal()">
+      <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+      Novo Gasto
+    </button>
+  </div>
+
+  <!-- Transactions Tabs -->
+  <div class="tabs tabs-boxed mb-6">
+    <a class="tab tab-active" onclick="showTab('all')">Todas</a>
+    <a class="tab" onclick="showTab('incomes')">Receitas</a>
+    <a class="tab" onclick="showTab('expenses')">Gastos</a>
+  </div>
+
+  <!-- Incomes Tab -->
+  <div id="incomes-tab" class="tab-content">
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="card-title">
+            <i data-lucide="trending-up" class="w-5 h-5 mr-2 text-success"></i>
+            Receitas
+          </h2>
+          <button class="btn btn-success btn-sm" onclick="openIncomeModal()">
+            <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+            Nova Receita
+          </button>
+        </div>
+        
+        {% if incomes %}
+          <div class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Data</th>
+                  <th>Valor</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for income in incomes %}
+                  <tr>
+                    <td>
+                      <div>
+                        <div class="font-semibold">{{ income.description }}</div>
+                        {% if income.detailed_description %}
+                          <div class="text-sm text-base-content/70">{{ income.detailed_description }}</div>
+                        {% endif %}
+                      </div>
+                    </td>
+                    <td>
+                      {% if income.category %}
+                        <div class="flex items-center">
+                          <span class="category-indicator" style="background-color: {{ income.category.color }}"></span>
+                          {{ income.category.name }}
+                        </div>
+                      {% else %}
+                        <span class="text-base-content/50">Sem categoria</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ income.received_at|date:"d/m/Y" }}</td>
+                    <td>
+                      <span class="font-bold text-success">R$ {% widthratio income.amount 100 1 %}</span>
+                    </td>
+                    <td>
+                      <div class="flex space-x-2">
+                        <button class="btn btn-ghost btn-xs" onclick="openEditIncomeModal({{ income.id }}, '{{ income.description|escapejs }}', '{{ income.detailed_description|default:""|escapejs }}', '{{ income.received_at|date:"Y-m-d" }}', {{ income.amount }}, {{ income.category.id|default:"null" }})" title="Editar">
+                          <i data-lucide="pencil" class="w-3 h-3"></i>
+                        </button>
+                        <button class="btn btn-ghost btn-xs text-error" onclick="if(confirm('Tem certeza que deseja excluir esta receita?')) { deleteIncome(); }" title="Excluir">
+                          <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-12">
+            <i data-lucide="trending-up" class="w-16 h-16 text-success/30 mx-auto mb-4"></i>
+            <h3 class="text-lg font-semibold text-base-content/70 mb-2">Nenhuma receita cadastrada</h3>
+            <p class="text-base-content/50 mb-4">Adicione suas primeiras receitas para começar</p>
+            <button class="btn btn-success" onclick="openIncomeModal()">Adicionar Receita</button>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Expenses Tab -->
+  <div id="expenses-tab" class="tab-content hidden">
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="card-title">
+            <i data-lucide="trending-down" class="w-5 h-5 mr-2 text-error"></i>
+            Gastos
+          </h2>
+          <button class="btn btn-error btn-sm" onclick="openExpenseModal()">
+            <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+            Novo Gasto
+          </button>
+        </div>
+        
+        {% if expenses %}
+          <div class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Data</th>
+                  <th>Valor</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for expense in expenses %}
+                  <tr>
+                    <td>
+                      <div>
+                        <div class="font-semibold">{{ expense.description }}</div>
+                        {% if expense.detailed_description %}
+                          <div class="text-sm text-base-content/70">{{ expense.detailed_description }}</div>
+                        {% endif %}
+                      </div>
+                    </td>
+                    <td>
+                      {% if expense.category %}
+                        <div class="flex items-center">
+                          <span class="category-indicator" style="background-color: {{ expense.category.color }}"></span>
+                          {{ expense.category.name }}
+                        </div>
+                      {% else %}
+                        <span class="text-base-content/50">Sem categoria</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ expense.spent_at|date:"d/m/Y" }}</td>
+                    <td>
+                      <span class="font-bold text-error">R$ {% widthratio expense.amount 100 1 %}</span>
+                    </td>
+                    <td>
+                      <div class="flex space-x-2">
+                        <button class="btn btn-ghost btn-xs" onclick="openEditExpenseModal({{ expense.id }}, '{{ expense.description|escapejs }}', '{{ expense.detailed_description|default:""|escapejs }}', '{{ expense.spent_at|date:"Y-m-d" }}', {{ expense.amount }}, {{ expense.category.id|default:"null" }})" title="Editar">
+                          <i data-lucide="pencil" class="w-3 h-3"></i>
+                        </button>
+                        <button class="btn btn-ghost btn-xs text-error" onclick="if(confirm('Tem certeza que deseja excluir este gasto?')) { deleteExpense(); }" title="Excluir">
+                          <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-12">
+            <i data-lucide="trending-down" class="w-16 h-16 text-error/30 mx-auto mb-4"></i>
+            <h3 class="text-lg font-semibold text-base-content/70 mb-2">Nenhum gasto cadastrado</h3>
+            <p class="text-base-content/50 mb-4">Adicione seus primeiros gastos para começar</p>
+            <button class="btn btn-error" onclick="openExpenseModal()">Adicionar Gasto</button>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- All Transactions Tab -->
+  <div id="all-tab" class="tab-content hidden">
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title mb-4">
+          <i data-lucide="receipt" class="w-5 h-5 mr-2"></i>
+          Todas as Transações
+        </h2>
+        
+        {% if all_transactions %}
+          <div class="space-y-4">
+            {% for transaction in all_transactions %}
+              {% if transaction.type == 'income' %}
+                <div class="transaction-card income-border bg-base-100 border border-base-300 rounded-lg p-4 flex items-center justify-between">
+                  <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center">
+                      <i data-lucide="trending-up" class="w-6 h-6 text-success"></i>
+                    </div>
+                    <div>
+                      <h3 class="font-semibold text-base-content">{{ transaction.description }}</h3>
+                      <p class="text-sm text-base-content/70">{{ transaction.detailed_description|default:"Sem descrição detalhada" }}</p>
+                      <div class="flex items-center mt-1">
+                        {% if transaction.category %}
+                          <span class="category-indicator" style="background-color: {{ transaction.category.color }}"></span>
+                          <span class="text-xs text-base-content/60">{{ transaction.category.name }}</span>
+                        {% else %}
+                          <span class="text-xs text-base-content/60">Sem categoria</span>
+                        {% endif %}
+                        <span class="mx-2 text-base-content/40">•</span>
+                        <span class="text-xs text-base-content/60">{{ transaction.date|date:"d/m/Y" }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-lg font-bold amount-income">+ R$ {% widthratio transaction.amount 100 1 %}</span>
+                    <button class="btn btn-ghost btn-sm" onclick="openEditIncomeModal({{ transaction.id }}, '{{ transaction.description|escapejs }}', '{{ transaction.detailed_description|default:""|escapejs }}', '{{ transaction.date|date:"Y-m-d" }}', {{ transaction.amount }}, {{ transaction.category.id|default:"null" }})">
+                      <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+              {% else %}
+                <div class="transaction-card expense-border bg-base-100 border border-base-300 rounded-lg p-4 flex items-center justify-between">
+                  <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-error/10 rounded-full flex items-center justify-center">
+                      <i data-lucide="trending-down" class="w-6 h-6 text-error"></i>
+                    </div>
+                    <div>
+                      <h3 class="font-semibold text-base-content">{{ transaction.description }}</h3>
+                      <p class="text-sm text-base-content/70">{{ transaction.detailed_description|default:"Sem descrição detalhada" }}</p>
+                      <div class="flex items-center mt-1">
+                        {% if transaction.category %}
+                          <span class="category-indicator" style="background-color: {{ transaction.category.color }}"></span>
+                          <span class="text-xs text-base-content/60">{{ transaction.category.name }}</span>
+                        {% else %}
+                          <span class="text-xs text-base-content/60">Sem categoria</span>
+                        {% endif %}
+                        <span class="mx-2 text-base-content/40">•</span>
+                        <span class="text-xs text-base-content/60">{{ transaction.date|date:"d/m/Y" }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-lg font-bold amount-expense">- R$ {% widthratio transaction.amount 100 1 %}</span>
+                    <button class="btn btn-ghost btn-sm" onclick="openEditExpenseModal({{ transaction.id }}, '{{ transaction.description|escapejs }}', '{{ transaction.detailed_description|default:""|escapejs }}', '{{ transaction.date|date:"Y-m-d" }}', {{ transaction.amount }}, {{ transaction.category.id|default:"null" }})">
+                      <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-12">
+            <i data-lucide="inbox" class="w-16 h-16 text-base-content/30 mx-auto mb-4"></i>
+            <h3 class="text-lg font-semibold text-base-content/70 mb-2">Nenhuma transação encontrada</h3>
+            <p class="text-base-content/50 mb-4">Comece adicionando suas primeiras receitas e gastos</p>
+            <div class="space-x-2">
+              <button class="btn btn-success btn-sm" onclick="openIncomeModal()">Adicionar Receita</button>
+              <button class="btn btn-error btn-sm" onclick="openExpenseModal()">Adicionar Gasto</button>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Include all modals from dashboard.html -->
+{% include "finance_manager/modals.html" %}
+
+<script>
+// Tab functionality specific to transactions page
+function showTab(tabName) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.add('hidden');
+    tab.classList.remove('block');
+  });
+  
+  // Remove active class from all tab buttons
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.classList.remove('tab-active');
+  });
+  
+  // Show selected tab
+  document.getElementById(tabName + '-tab').classList.remove('hidden');
+  document.getElementById(tabName + '-tab').classList.add('block');
+  
+  // Add active class to clicked tab button
+  event.target.classList.add('tab-active');
+}
+
+// Initialize first tab as visible
+document.addEventListener('DOMContentLoaded', function() {
+  // Show the "all" tab by default
+  showTab('all');
+});
+</script>
+{% endblock %}

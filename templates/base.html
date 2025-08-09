@@ -13,8 +13,13 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     {% load static %}
     <link
-      href"{% static 'jcss/toast_message.css' %}",
-      rel="stylesheet",
+      href="{% static 'css/toast_message.css' %}"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="{% static 'css/gemini-chat.css' %}"
+      rel="stylesheet"
       type="text/css"
     />
     {% block extra_head %}{% endblock %}
@@ -49,6 +54,7 @@
     
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="aplication/javascript" src="{% static 'js/toast_message.js' %}"></script>
+    <script src="{% static 'js/gemini-chat.js' %}"></script>
     <script>
       lucide.createIcons()
     </script>

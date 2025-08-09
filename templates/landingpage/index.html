@@ -11,11 +11,20 @@
       </p>
       
       <!-- Test Messages Button -->
-      <div class="mt-4">
-        <a href="{% url 'test_messages' %}" class="btn btn-outline btn-sm">
-          <i data-lucide="message-circle" class="w-4 h-4 mr-1"></i>
-          Testar Mensagens
-        </a>
+      <div class='flex items-center justify-center gap-4'>
+        <div class="mt-4">
+          <a href="{% url 'test_messages' %}" class="btn btn-outline btn-sm">
+            <i data-lucide="message-circle" class="w-4 h-4 mr-1"></i>
+            Testar Mensagens
+          </a>
+        </div>
+        <!-- Test Messages Button -->
+        <div class="mt-4">
+          <a href="{% url 'agentAi:ai_test' %}" class="btn btn-outline btn-sm">
+            <i data-lucide="message-circle" class="w-4 h-4 mr-1"></i>
+            Testar IA
+          </a>
+        </div>
       </div>
     </div>
 

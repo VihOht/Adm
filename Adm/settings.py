@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     "landingpage.apps.LandingpageConfig",
     "authentication.apps.AuthenticationConfig",
     "finance_manager.apps.FinanceManagerConfig",
+    "finance_statistics.apps.FinanceStatisticsConfig",
+    "agentAi.apps.AgentaiConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

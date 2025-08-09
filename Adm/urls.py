@@ -22,5 +22,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("authentication.urls")),
     path("finance/", include("finance_manager.urls")),
+    path("finance/statistics", include("finance_statistics.urls")),
+    path("ai/", include("agentAi.urls")),
     path("", include("landingpage.urls")),
 ]

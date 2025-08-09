@@ -5,6 +5,14 @@
 {% block finance_head %}
 <link rel="stylesheet" type="text/css" href="{% static 'css/finance_dashboard.css' %}">
 <script>
+  // Set "Gastos" as actual Page
+  window.addEventListener("load", function() {
+    un_l = document.getElementById("s_items")
+    actual = un_l.children[1].children[0]
+    console.log(actual)
+    actual.classList.add("bg-primary", "text-primary-content")
+  })
+
   // Set URLs and CSRF token for JavaScript to use
   window.createExpenseUrl = '{% url "finance_manager:create_expense" %}';
   window.createCategoryUrl = '{% url "finance_manager:create_category" %}';
@@ -95,7 +103,7 @@
               <tr>
                 <td>{{ expense.spent_at | date:"D, d M, Y" }}</td>
                 <td>{{ expense.description }}</td>
-                <td><span class="badge badge-primary" style="background-color:{{ expense.category.color }}; important!">{{ expense.category }}</span></td>
+                <td><span class="badge badge-primary border-hidden shadow-md opacity-80" style="background-color:{{ expense.category.color }}; important!">{{ expense.category }}</span></td>
                 {% with am=expense.amount %}
                 <td class="text-error font-semibold">R$ {{ am|intdiv:100 }}{% if am|mod:100 == 0 %},00{%elif am|mod:100 < 10%},0{{am|mod:100}}{% else %},{{am|mod:100}}{% endif %}</td>
                 {% endwith %}
@@ -144,7 +152,7 @@
                 <td>{{ income.description }}</td>
                 <td>
                   {% if income.category %}
-                    <span class="badge badge-secondary" style="background-color:{{ income.category.color }}; color: white;">{{ income.category }}</span>
+                    <span class="badge badge-secondary border-hidden shadow-md" style="background-color:{{ income.category.color }}; color: white;">{{ income.category }}</span>
                   {% else %}
                     <span class="badge badge-ghost">Sem categoria</span>
                   {% endif %}

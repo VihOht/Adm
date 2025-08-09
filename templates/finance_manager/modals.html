@@ -1,0 +1,582 @@
+<!-- Add Expense Modal -->
+<div id="expenseModal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="plus" class="w-5 h-5 inline-block mr-2"></i>
+      Adicionar Novo Gasto
+    </h3>
+    
+    <form id="expenseForm" class="space-y-4">
+      <!-- Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição *</span>
+        </label>
+        <input type="text" id="description" name="description" placeholder="Ex: Supermercado, Gasolina..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Detailed Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição Detalhada</span>
+        </label>
+        <textarea id="detailed_description" name="detailed_description" 
+                  placeholder="Informações adicionais sobre o gasto..." 
+                  class="textarea textarea-bordered w-full h-20"></textarea>
+      </div>
+      
+      <!-- Date and Amount Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Data do Gasto *</span>
+          </label>
+          <input type="date" id="spent_at" name="spent_at" 
+                 class="input input-bordered w-full" required>
+        </div>
+        
+        <!-- Amount -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Valor (R$) *</span>
+          </label>
+          <input type="number" id="amount" name="amount" step="0.01" min="0" 
+                 placeholder="0,00" class="input input-bordered w-full" required>
+        </div>
+      </div>
+      
+      <!-- Category -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Categoria</span>
+        </label>
+        <div class="flex gap-2">
+          <select id="category" name="category" class="select select-bordered flex-1">
+            <option value="">Selecione uma categoria</option>
+            {% for category in expense_categories %}
+              <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline" onclick="openCategoryModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeExpenseModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitExpense()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Salvar Gasto
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Income Modal -->
+<div id="incomeModal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="plus" class="w-5 h-5 inline-block mr-2"></i>
+      Adicionar Nova Receita
+    </h3>
+    
+    <form id="incomeForm" class="space-y-4">
+      <!-- Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição *</span>
+        </label>
+        <input type="text" id="income_description" name="description" placeholder="Ex: Salário, Freelance..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Detailed Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição Detalhada</span>
+        </label>
+        <textarea id="income_detailed_description" name="detailed_description" 
+                  placeholder="Informações adicionais sobre a receita..." 
+                  class="textarea textarea-bordered w-full h-20"></textarea>
+      </div>
+      
+      <!-- Date and Amount Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Data da Receita *</span>
+          </label>
+          <input type="date" id="income_received_at" name="received_at" 
+                 class="input input-bordered w-full" required>
+        </div>
+        
+        <!-- Amount -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Valor (R$) *</span>
+          </label>
+          <input type="number" id="income_amount" name="amount" step="0.01" min="0" 
+                 placeholder="0,00" class="input input-bordered w-full" required>
+        </div>
+      </div>
+      
+      <!-- Category -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Categoria</span>
+        </label>
+        <div class="flex gap-2">
+          <select id="income_category" name="category" class="select select-bordered flex-1">
+            <option value="">Selecione uma categoria</option>
+            {% for category in income_categories %}
+              <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline" onclick="openIncomeCategoryModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeIncomeModal()">Cancelar</button>
+      <button class="btn btn-secondary" onclick="submitIncome()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Salvar Receita
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Category Modal -->
+<div id="categoryModal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="tag" class="w-5 h-5 inline-block mr-2"></i>
+      Nova Categoria
+    </h3>
+    
+    <form id="categoryForm" class="space-y-4">
+      <!-- Category Name -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Nome da Categoria *</span>
+        </label>
+        <input type="text" id="category_name" name="name" placeholder="Ex: Alimentação, Transporte..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Category Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição</span>
+        </label>
+        <input type="text" id="category_description" name="description" 
+               placeholder="Descrição da categoria..." 
+               class="input input-bordered w-full">
+      </div>
+      
+      <!-- Category Color -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Cor da Categoria</span>
+        </label>
+        <div class="flex gap-2 items-center">
+          <input type="color" id="category_color" name="color" value="#3B82F6" 
+                 class="w-12 h-12 rounded-lg border-2 border-base-300">
+          <span class="text-sm text-base-content/70">Escolha uma cor para identificar a categoria</span>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeCategoryModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitCategory()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Criar Categoria
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Income Category Modal -->
+<div id="incomeCategoryModal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="tag" class="w-5 h-5 inline-block mr-2"></i>
+      Nova Categoria de Receita
+    </h3>
+    
+    <form id="incomeCategoryForm" class="space-y-4">
+      <!-- Category Name -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Nome da Categoria *</span>
+        </label>
+        <input type="text" id="income_category_name" name="name" placeholder="Ex: Salário, Investimentos..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Category Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição</span>
+        </label>
+        <input type="text" id="income_category_description" name="description" 
+               placeholder="Descrição da categoria..." 
+               class="input input-bordered w-full">
+      </div>
+      
+      <!-- Category Color -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Cor da Categoria</span>
+        </label>
+        <div class="flex gap-2 items-center">
+          <input type="color" id="income_category_color" name="color" value="#10B981" 
+                 class="w-12 h-12 rounded-lg border-2 border-base-300">
+          <span class="text-sm text-base-content/70">Escolha uma cor para identificar a categoria</span>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeIncomeCategoryModal()">Cancelar</button>
+      <button class="btn btn-secondary" onclick="submitIncomeCategory()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Criar Categoria
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Expense Modal -->
+<div id="editExpenseModal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="pencil" class="w-5 h-5 inline-block mr-2"></i>
+      Editar Gasto
+    </h3>
+    
+    <form id="editExpenseForm" class="space-y-4">
+      <input type="hidden" id="edit_expense_id" name="expense_id">
+      
+      <!-- Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição *</span>
+        </label>
+        <input type="text" id="edit_description" name="description" placeholder="Ex: Supermercado, Gasolina..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Detailed Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição Detalhada</span>
+        </label>
+        <textarea id="edit_detailed_description" name="detailed_description" 
+                  placeholder="Informações adicionais sobre o gasto..." 
+                  class="textarea textarea-bordered w-full h-20"></textarea>
+      </div>
+      
+      <!-- Date and Amount Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Data do Gasto *</span>
+          </label>
+          <input type="date" id="edit_spent_at" name="spent_at" 
+                 class="input input-bordered w-full" required>
+        </div>
+        
+        <!-- Amount -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Valor (R$) *</span>
+          </label>
+          <input type="number" id="edit_amount" name="amount" step="0.01" min="0" 
+                 placeholder="0,00" class="input input-bordered w-full" required>
+        </div>
+      </div>
+      
+      <!-- Category -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Categoria</span>
+        </label>
+        <div class="flex gap-2">
+          <select id="edit_category" name="category" class="select select-bordered flex-1">
+            <option value="">Selecione uma categoria</option>
+            {% for category in expense_categories %}
+              <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline" onclick="editSelectedCategory()">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+          </button>
+          <button type="button" class="btn btn-outline" onclick="openCategoryModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeEditExpenseModal()">Cancelar</button>
+      <button class="btn btn-error btn-outline" onclick="deleteExpense()">
+        <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+        Excluir
+      </button>
+      <button class="btn btn-primary" onclick="submitEditExpense()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Salvar Alterações
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Income Modal -->
+<div id="editIncomeModal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">
+      <i data-lucide="pencil" class="w-5 h-5 inline-block mr-2"></i>
+      Editar Receita
+    </h3>
+    
+    <form id="editIncomeForm" class="space-y-4">
+      <input type="hidden" id="edit_income_id" name="income_id">
+      
+      <!-- Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição *</span>
+        </label>
+        <input type="text" id="edit_income_description" name="description" placeholder="Ex: Salário, Freelance..." 
+               class="input input-bordered w-full" required>
+      </div>
+      
+      <!-- Detailed Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Descrição Detalhada</span>
+        </label>
+        <textarea id="edit_income_detailed_description" name="detailed_description" 
+                  placeholder="Informações adicionais sobre a receita..." 
+                  class="textarea textarea-bordered w-full h-20"></textarea>
+      </div>
+      
+      <!-- Date and Amount Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Data da Receita *</span>
+          </label>
+          <input type="date" id="edit_income_received_at" name="received_at" 
+                 class="input input-bordered w-full" required>
+        </div>
+        
+        <!-- Amount -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Valor (R$) *</span>
+          </label>
+          <input type="number" id="edit_income_amount" name="amount" step="0.01" min="0" 
+                 placeholder="0,00" class="input input-bordered w-full" required>
+        </div>
+      </div>
+      
+      <!-- Category -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Categoria</span>
+        </label>
+        <div class="flex gap-2">
+          <select id="edit_income_category" name="category" class="select select-bordered flex-1">
+            <option value="">Selecione uma categoria</option>
+            {% for category in income_categories %}
+              <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline" onclick="editSelectedIncomeCategory()" title="Editar categoria selecionada">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+          </button>
+          <button type="button" class="btn btn-outline" onclick="openIncomeCategoryModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeEditIncomeModal()">Cancelar</button>
+      <button class="btn btn-error btn-outline" onclick="deleteIncome()">
+        <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+        Excluir
+      </button>
+      <button class="btn btn-secondary" onclick="submitEditIncome()">
+        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+        Salvar Alterações
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// AJAX functions for submitting categories
+async function submitCategory() {
+  const form = document.getElementById('categoryForm');
+  const formData = new FormData(form);
+  
+  const data = {
+    name: formData.get('name'),
+    description: formData.get('description'),
+    color: formData.get('color')
+  };
+  
+  try {
+    const response = await fetch(window.createCategoryUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': window.csrfToken
+      },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      closeCategoryModal();
+      location.reload();
+    } else {
+      alert('Erro: ' + result.message);
+    }
+  } catch (error) {
+    alert('Erro ao criar categoria: ' + error.message);
+  }
+}
+
+async function submitIncomeCategory() {
+  const form = document.getElementById('incomeCategoryForm');
+  const formData = new FormData(form);
+  
+  const data = {
+    name: formData.get('name'),
+    description: formData.get('description'),
+    color: formData.get('color')
+  };
+  
+  try {
+    const response = await fetch(window.createIncomeCategoryUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': window.csrfToken
+      },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      closeIncomeCategoryModal();
+      location.reload();
+    } else {
+      alert('Erro: ' + result.message);
+    }
+  } catch (error) {
+    alert('Erro ao criar categoria: ' + error.message);
+  }
+}
+
+// Edit functions placeholders
+function editSelectedCategory() {
+  alert('Funcionalidade de edição de categoria será implementada em breve');
+}
+
+function editSelectedIncomeCategory() {
+  alert('Funcionalidade de edição de categoria de receita será implementada em breve');
+}
+
+// Edit submission functions
+async function submitEditExpense() {
+  const form = document.getElementById('editExpenseForm');
+  const formData = new FormData(form);
+  const expenseId = formData.get('expense_id');
+  
+  const data = {
+    description: formData.get('description'),
+    detailed_description: formData.get('detailed_description'),
+    amount: formData.get('amount'),
+    spent_at: formData.get('spent_at'),
+    category_id: formData.get('category') || null
+  };
+  
+  try {
+    const response = await fetch(`${window.editExpenseUrl}${expenseId}/edit/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': window.csrfToken
+      },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      closeEditExpenseModal();
+      location.reload();
+    } else {
+      alert('Erro: ' + result.message);
+    }
+  } catch (error) {
+    alert('Erro ao editar gasto: ' + error.message);
+  }
+}
+
+async function submitEditIncome() {
+  const form = document.getElementById('editIncomeForm');
+  const formData = new FormData(form);
+  const incomeId = formData.get('income_id');
+  
+  const data = {
+    description: formData.get('description'),
+    detailed_description: formData.get('detailed_description'),
+    amount: formData.get('amount'),
+    received_at: formData.get('received_at'),
+    category_id: formData.get('category') || null
+  };
+  
+  try {
+    const response = await fetch(`${window.editIncomeUrl}${incomeId}/edit/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': window.csrfToken
+      },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      closeEditIncomeModal();
+      location.reload();
+    } else {
+      alert('Erro: ' + result.message);
+    }
+  } catch (error) {
+    alert('Erro ao editar receita: ' + error.message);
+  }
+}
+</script>

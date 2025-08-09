@@ -36,16 +36,18 @@
   <aside class="w-64 bg-base-100 shadow-lg hidden lg:block">
     <!-- Logo/Header -->
     <div class="p-6 border-b border-base-300">
-      <h1 class="text-2xl font-bold text-primary flex items-center">
-        <i data-lucide="bar-chart-3" class="w-8 h-8 mr-3"></i>
-        VihOhtLife
-      </h1>
+      <a href="{% url "landingpage" %}">
+        <h1 class="text-2xl font-bold text-primary flex items-center">
+          <i data-lucide="bar-chart-3" class="w-8 h-8 mr-3"></i>
+          VihOhtLife
+        </h1>
+      </a>
       <p class="text-sm text-base-content/70 mt-1">Gestão Financeira</p>
     </div>
     
     <!-- Navigation Menu -->
     <nav class="p-4">
-      <ul class="menu menu-vertical w-full space-y-2">
+      <ul id="s_items" class="menu menu-vertical w-full space-y-2">
         <!-- Página Principal -->
         <li>
           <a href="{% url 'landingpage' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group">
@@ -56,21 +58,21 @@
         
         <!-- Gastos -->
         <li>
-          <a href="{% url 'finance_manager:dashboard' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group bg-primary text-primary-content">
+          <a href="{% url 'finance_manager:dashboard' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group">
             <i data-lucide="credit-card" class="w-5 h-5 mr-3"></i>
-            <span class="font-medium">Gastos</span>
+            <span class="font-medium">Transações</span>
           </a>
           
           <!-- Submenu for Gastos -->
           <ul class="ml-6 mt-2 space-y-1">
             <li>
-              <a href="#" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
+              <a href="{% url 'finance_manager:transactions' %}" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
                 <i data-lucide="list" class="w-4 h-4 mr-2"></i>
-                Ver Gastos
+                Ver Transações
               </a>
             </li>
             <li>
-              <a href="#" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
+              <a href="{% url 'statistics' %}" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
                 <i data-lucide="pie-chart" class="w-4 h-4 mr-2"></i>
                 Relatórios
               </a>
@@ -171,4 +173,5 @@
     </div>
   </main>
 </div>
+
 {% endblock %}

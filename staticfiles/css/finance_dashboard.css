@@ -1,0 +1,74 @@
+/* Finance Dashboard Styles */
+
+/* Modal layering - ensure category modal appears over expense/income modals */
+.modal {
+  z-index: 1000;
+}
+
+/* Category/Income category modal when editing over expense/income modal */
+.modal[style*="z-index: 1001"] {
+  z-index: 1001 !important;
+}
+
+/* Ensure backdrop appears correctly for layered modals */
+.modal-open {
+  z-index: 1000;
+}
+
+.modal-open[style*="z-index: 1001"] {
+  z-index: 1001 !important;
+}
+
+/* Prevent backdrop from interfering with layered modals */
+.modal::before {
+  z-index: -1;
+}
+
+/* Enhanced pencil button styling */
+.btn-ghost.btn-xs {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  padding: 0.25rem;
+  min-height: 2rem;
+}
+
+.btn-ghost.btn-xs:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Auto-complete styling for form fields */
+.form-control[readonly] {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
+
+/* Enhanced modal transitions */
+.modal {
+  transition: all 0.3s ease;
+}
+
+.modal.modal-open {
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Fix for DaisyUI modal backdrop */
+.modal-open.modal:before {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Ensure higher z-index modals have darker backdrop */
+.modal[style*="z-index: 1001"]:before {
+  background-color: rgba(0, 0, 0, 0.5);
+}

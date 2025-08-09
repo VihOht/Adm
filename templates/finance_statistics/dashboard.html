@@ -1,0 +1,254 @@
+{% extends 'finance_statistics/base.html' %}
+{% load static %}
+
+{% block finance_content %}
+<div class="max-w-7xl mx-auto">
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-base-content mb-2">
+      <i data-lucide="bar-chart-3" class="w-8 h-8 inline-block mr-3"></i>
+      Estatísticas Financeiras
+    </h1>
+    <p class="text-base-content/70">Análise visual dos seus dados financeiros</p>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-primary">
+        <i data-lucide="trending-down" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Total de Gastos</div>
+      <div class="stat-value text-primary">{{ total_expenses }}</div>
+      <div class="stat-desc">Registros no sistema</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-secondary">
+        <i data-lucide="trending-up" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Total de Receitas</div>
+      <div class="stat-value text-secondary">{{ total_incomes }}</div>
+      <div class="stat-desc">Registros no sistema</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-accent">
+        <i data-lucide="tag" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Categorias de Gastos</div>
+      <div class="stat-value text-accent">{{ expense_categories_count }}</div>
+      <div class="stat-desc">Diferentes categorias</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-info">
+        <i data-lucide="bookmark" class="w-8 h-8"></i>
+      </div>
+      <div class="stat-title">Categorias de Receitas</div>
+      <div class="stat-value text-info">{{ income_categories_count }}</div>
+      <div class="stat-desc">Diferentes categorias</div>
+    </div>
+  </div>
+
+  <!-- Graph Boxes Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    
+    <!-- Expenses by Category Chart -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title mb-4">
+          <i data-lucide="pie-chart" class="w-5 h-5 mr-2"></i>
+          Gastos por Categoria
+        </h2>
+        <div class="graph-container bg-base-200 rounded-lg p-4 min-h-[300px] flex items-center justify-center">
+          <div id="expenses-category-graph" class="w-full h-full">
+            {% if expense_category_graph %}
+              <img src="data:image/png;base64,{{ expense_category_graph }}" 
+                   alt="Gráfico de Gastos por Categoria" 
+                   class="w-full h-auto max-h-[280px] object-contain">
+            {% else %}
+              <div class="text-center text-base-content/50">
+                <i data-lucide="image" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                <p>Gráfico será exibido aqui</p>
+                <p class="text-sm">Dados insuficientes ou em processamento</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Expenses Trend -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title mb-4">
+          <i data-lucide="line-chart" class="w-5 h-5 mr-2"></i>
+          Tendência Mensal de Gastos
+        </h2>
+        <div class="graph-container bg-base-200 rounded-lg p-4 min-h-[300px] flex items-center justify-center">
+          <div id="monthly-expenses-graph" class="w-full h-full">
+            {% if monthly_expenses_graph %}
+              <img src="data:image/png;base64,{{ monthly_expenses_graph }}" 
+                   alt="Gráfico de Tendência Mensal de Gastos" 
+                   class="w-full h-auto max-h-[280px] object-contain">
+            {% else %}
+              <div class="text-center text-base-content/50">
+                <i data-lucide="image" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                <p>Gráfico será exibido aqui</p>
+                <p class="text-sm">Dados insuficientes ou em processamento</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Income vs Expenses Comparison -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title mb-4">
+          <i data-lucide="bar-chart" class="w-5 h-5 mr-2"></i>
+          Receitas vs Gastos por Mês
+        </h2>
+        <div class="graph-container bg-base-200 rounded-lg p-4 min-h-[400px] flex items-center justify-center">
+          <div id="income-expenses-comparison-graph" class="w-full h-full">
+            {% if income_expenses_graph %}
+              <img src="data:image/png;base64,{{ income_expenses_graph }}" 
+                   alt="Gráfico de Comparação Receitas vs Gastos por Mês" 
+                   class="w-full h-auto max-h-[380px] object-contain">
+            {% else %}
+              <div class="text-center text-base-content/50">
+                <i data-lucide="image" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                <p>Gráfico será exibido aqui</p>
+                <p class="text-sm">Dados insuficientes ou em processamento</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Income by Category Chart -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title mb-4">
+          <i data-lucide="donut-chart" class="w-5 h-5 mr-2"></i>
+          Receitas por Categoria
+        </h2>
+        <div class="graph-container bg-base-200 rounded-lg p-4 min-h-[300px] flex items-center justify-center">
+          <div id="income-category-graph" class="w-full h-full">
+            {% if income_category_graph %}
+              <img src="data:image/png;base64,{{ income_category_graph }}" 
+                   alt="Gráfico de Receitas por Categoria" 
+                   class="w-full h-auto max-h-[280px] object-contain">
+            {% else %}
+              <div class="text-center text-base-content/50">
+                <i data-lucide="image" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                <p>Gráfico será exibido aqui</p>
+                <p class="text-sm">Dados insuficientes ou em processamento</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Full Width Charts -->
+  <div class="space-y-6">
+    
+    <!-- Daily Spending Pattern -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title mb-4">
+          <i data-lucide="calendar" class="w-5 h-5 mr-2"></i>
+          Padrão de Gastos Diários
+        </h2>
+        <div class="graph-container bg-base-200 rounded-lg p-4 min-h-[400px] flex items-center justify-center">
+          <div id="daily-spending-graph" class="w-full h-full">
+            {% if daily_spending_graph %}
+              <img src="data:image/png;base64,{{ daily_spending_graph }}" 
+                   alt="Gráfico de Padrão de Gastos Diários" 
+                   class="w-full h-auto max-h-[380px] object-contain">
+            {% else %}
+              <div class="text-center text-base-content/50">
+                <i data-lucide="image" class="w-20 h-20 mx-auto mb-4 opacity-30"></i>
+                <p class="text-lg">Gráfico será exibido aqui</p>
+                <p class="text-sm">Dados insuficientes ou em processamento</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial Summary Heatmap -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <h2 class="card-title mb-4">
+          <i data-lucide="activity" class="w-5 h-5 mr-2"></i>
+          Mapa de Calor - Atividade Financeira
+        </h2>
+        <div class="graph-container bg-base-200 rounded-lg p-4 min-h-[400px] flex items-center justify-center">
+          <div id="financial-heatmap-graph" class="w-full h-full">
+            {% if financial_heatmap_graph %}
+              <img src="data:image/png;base64,{{ financial_heatmap_graph }}" 
+                   alt="Mapa de Calor da Atividade Financeira" 
+                   class="w-full h-auto max-h-[380px] object-contain">
+            {% else %}
+              <div class="text-center text-base-content/50">
+                <i data-lucide="image" class="w-20 h-20 mx-auto mb-4 opacity-30"></i>
+                <p class="text-lg">Gráfico será exibido aqui</p>
+                <p class="text-sm">Dados insuficientes ou em processamento</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  {% if not has_data %}
+  <!-- No Data Message -->
+  <div class="card bg-warning/10 border border-warning/20 shadow-lg mt-8">
+    <div class="card-body text-center">
+      <i data-lucide="alert-triangle" class="w-16 h-16 mx-auto mb-4 text-warning"></i>
+      <h3 class="text-xl font-semibold mb-2">Dados Insuficientes</h3>
+      <p class="text-base-content/70 mb-4">
+        Para gerar estatísticas e gráficos, você precisa ter pelo menos alguns gastos ou receitas registrados.
+      </p>
+      <a href="{% url 'finance_manager:dashboard' %}" class="btn btn-primary">
+        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+        Adicionar Dados Financeiros
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+  .graph-container {
+    transition: all 0.3s ease;
+  }
+  
+  .graph-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  }
+  
+  .card:hover {
+    transform: translateY(-4px);
+    transition: transform 0.2s ease;
+  }
+  
+  @media (max-width: 768px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
