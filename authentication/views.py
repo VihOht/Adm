@@ -140,15 +140,23 @@ def password_reset_view(request):
                 )
             )
 
-            # Email context
+            # Email context with proper domain handling
+            domain = request.get_host()
+            # Handle Railway.app subdomain properly
+            if "railway.app" in domain:
+                protocol = "https"
+            else:
+                protocol = "https" if request.is_secure() else "http"
+
             context = {
                 "email": user.email,
-                "domain": request.get_host(),
+                "domain": domain,
                 "site_name": "VihOhtLife",
                 "uid": uid,
                 "user": user,
                 "token": token,
-                "protocol": "https" if request.is_secure() else "http",
+                "protocol": protocol,
+                "reset_url": reset_link,
             }
 
             # Render email templates
@@ -160,6 +168,14 @@ def password_reset_view(request):
             body = render_to_string("registration/password_reset_email.txt", context)
 
             try:
+                # Validate email configuration
+                if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+                    messages.error(
+                        request,
+                        "Serviço de email não configurado. Entre em contato com o administrador.",
+                    )
+                    return render(request, "authentication/password_reset_form.html")
+
                 send_mail(
                     subject,
                     body,
@@ -168,15 +184,21 @@ def password_reset_view(request):
                     fail_silently=False,
                 )
                 messages.success(request, "Email de recuperação enviado com sucesso!")
+
             except Exception as e:
-                print(f"Email error: {e}")
-                messages.warning(
-                    request,
-                    "Email não pôde ser enviado. Verifique a configuração do servidor de email.",
-                )
-                messages.info(
-                    request, f"Link de recuperação (desenvolvimento): {reset_link}"
-                )
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.error(f"Email sending failed: {e}")
+
+                # More detailed error handling for production
+                if settings.DEBUG:
+                    messages.error(request, f"Erro ao enviar email: {str(e)}")
+                else:
+                    messages.warning(
+                        request,
+                        "Não foi possível enviar o email de recuperação. Tente novamente em alguns minutos.",
+                    )
 
             return redirect("authentication:password_reset_done")
 
