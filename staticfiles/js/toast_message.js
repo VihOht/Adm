@@ -23,7 +23,6 @@ function initializeToastMessages() {
 }
 
 function dismissToast(toastId) {
-    console.log('Dismissing toast:', toastId); // Debug log
     const toast = document.getElementById(toastId);
     if (toast) {
         toast.style.transition = 'all 0.3s ease-out';
@@ -33,11 +32,8 @@ function dismissToast(toastId) {
         setTimeout(function() {
             if (toast.parentNode) {
                 toast.remove();
-                console.log('Toast removed:', toastId); // Debug log
             }
         }, 300);
-    } else {
-        console.warn('Toast not found:', toastId); // Debug log
     }
 }
 
@@ -46,10 +42,8 @@ window.dismissToast = dismissToast;
 
 // Function to manually create toast messages via JavaScript
 function createToast(message, type = 'success', dur = 5000) {
-    console.log('Creating toast:', { message, type, dur }); // Debug log
     
     const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    console.log('Generated toast ID:', toastId); // Debug log
     
     const alertTypes = {
         'success': 'alert-success',
@@ -78,11 +72,9 @@ function createToast(message, type = 'success', dur = 5000) {
         toastContainer.id = 'toast-container';
         toastContainer.className = 'fixed top-4 right-4 z-50 max-w-md';
         document.body.appendChild(toastContainer);
-        console.log('Created toast container'); // Debug log
     }
     
     toastContainer.insertAdjacentHTML('afterbegin', toastHTML);
-    console.log('Toast inserted into container'); // Debug log
     
     if (window.lucide) {
         window.lucide.createIcons();
@@ -91,7 +83,6 @@ function createToast(message, type = 'success', dur = 5000) {
     // Auto dismiss after specified duration
     if (dur > 0) {
         setTimeout(function() {
-            console.log('Auto-dismissing toast after', dur, 'ms'); // Debug log
             window.dismissToast(toastId);
         }, dur);
     }

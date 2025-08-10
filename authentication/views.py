@@ -60,8 +60,6 @@ def register_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         email = request.POST.get("email")
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
         password1 = request.POST.get("password1")
         password2 = request.POST.get("password2")
         accept_terms = request.POST.get("accept_terms")
@@ -99,8 +97,6 @@ def register_view(request):
                     username=username,
                     email=email,
                     password=password1,
-                    first_name=first_name or "",
-                    last_name=last_name or "",
                 )
 
             messages.success(
