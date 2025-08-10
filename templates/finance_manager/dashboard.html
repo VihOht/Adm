@@ -24,6 +24,34 @@
   window.deleteIncomeUrl = '/finance/income/'; // Will append ID in JavaScript
   window.importDataUrl = '{% url "finance_manager:import_data" %}';
   window.csrfToken = '{{ csrf_token }}';
+
+  // Test toast system on page load
+  window.addEventListener('DOMContentLoaded', function() {
+    console.log('Testing toast system...');
+    
+    // Test if toast functions are available
+    if (typeof window.dismissToast === 'function') {
+      console.log('✅ dismissToast is available globally');
+    } else {
+      console.error('❌ dismissToast is not available globally');
+    }
+    
+    if (typeof window.toastSuccess === 'function') {
+      console.log('✅ toastSuccess is available globally');
+    } else {
+      console.error('❌ toastSuccess is not available globally');
+    }
+    
+    if (typeof window.createToast === 'function') {
+      console.log('✅ createToast is available globally');
+      // Test creating a welcome toast
+      setTimeout(() => {
+        window.createToast('Toast system is working! 🎉', 'success', 3000);
+      }, 1000);
+    } else {
+      console.error('❌ createToast is not available globally');
+    }
+  });
 </script>
 {% endblock %}
 
@@ -87,7 +115,7 @@
       <div class="stat-figure text-primary">
         <i data-lucide="calendar" class="w-8 h-8"></i>
       </div>
-      <div class="stat-title">Média Diária</div>
+      <div class="stat-title">Média Diária de Gastos</div>
       <div class="stat-value text-primary">R$ {{ daily_mean }}</div>
       <div class="stat-desc">{{ range_of_days }}</div>
     </div>

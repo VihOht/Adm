@@ -27,7 +27,7 @@ def dashboard(request):
     total_expenses = sum([x.amount for x in Expenses.objects.filter(user=request.user)])
     total_incomes = sum([x.amount for x in Incomes.objects.filter(user=request.user)])
 
-    range_of_days = "No expenses this month"
+    range_of_days = "Sem gastos neste mês"
     total_expenses_this_month = 0
     daily_mean = 0
     if expenses_this_month:

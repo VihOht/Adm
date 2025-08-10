@@ -1,6 +1,6 @@
 // Toast Messages System for VihOhtLife
-// Auto dismiss toasts after dur miliseconds and handle manual dismissal
-dur = 2000
+// Auto dismiss toasts after dur milliseconds and handle manual dismissal
+const dur = 2000;
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeToastMessages();
@@ -23,6 +23,7 @@ function initializeToastMessages() {
 }
 
 function dismissToast(toastId) {
+    console.log('Dismissing toast:', toastId); // Debug log
     const toast = document.getElementById(toastId);
     if (toast) {
         toast.style.transition = 'all 0.3s ease-out';
@@ -32,47 +33,70 @@ function dismissToast(toastId) {
         setTimeout(function() {
             if (toast.parentNode) {
                 toast.remove();
+                console.log('Toast removed:', toastId); // Debug log
             }
         }, 300);
+    } else {
+        console.warn('Toast not found:', toastId); // Debug log
     }
 }
 
+// Make dismissToast globally accessible
+window.dismissToast = dismissToast;
+
 // Function to manually create toast messages via JavaScript
-function createToast(message, type = 'info', duration = dur) {
-    const toastContainer = document.querySelector('.toast') || createToastContainer();
-    const toastId = 'toast-' + Date.now();
+function createToast(message, type = 'success', dur = 5000) {
+    console.log('Creating toast:', { message, type, dur }); // Debug log
     
-    // Icon mapping
-    const icons = {
-        success: 'check-circle',
-        error: 'x-circle', 
-        warning: 'alert-triangle',
-        info: 'info'
+    const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    console.log('Generated toast ID:', toastId); // Debug log
+    
+    const alertTypes = {
+        'success': 'alert-success',
+        'error': 'alert-error', 
+        'info': 'alert-info',
+        'warning': 'alert-warning'
     };
     
+    const alertClass = alertTypes[type] || 'alert-info';
+    
     const toastHTML = `
-        <div class="alert alert-${type} shadow-lg animate-fade-in" id="${toastId}">
+        <div id="${toastId}" class="alert ${alertClass} mb-2 flex items-center justify-between shadow-lg">
             <div class="flex items-center">
-                <i data-lucide="${icons[type] || 'info'}" class="w-5 h-5 mr-2"></i>
+                <i data-lucide="${type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : type === 'warning' ? 'alert-triangle' : 'info'}" class="w-5 h-5 mr-2"></i>
                 <span>${message}</span>
-                <button onclick="dismissToast('${toastId}')" class="btn btn-ghost btn-xs ml-2">
-                    <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
             </div>
+            <button onclick="window.dismissToast('${toastId}')" class="btn btn-sm btn-ghost">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
         </div>
     `;
     
-    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-    
-    // Refresh icons for the new toast
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed top-4 right-4 z-50 max-w-md';
+        document.body.appendChild(toastContainer);
+        console.log('Created toast container'); // Debug log
     }
     
-    // Auto dismiss
-    setTimeout(function() {
-        dismissToast(toastId);
-    }, duration);
+    toastContainer.insertAdjacentHTML('afterbegin', toastHTML);
+    console.log('Toast inserted into container'); // Debug log
+    
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+    
+    // Auto dismiss after specified duration
+    if (dur > 0) {
+        setTimeout(function() {
+            console.log('Auto-dismissing toast after', dur, 'ms'); // Debug log
+            window.dismissToast(toastId);
+        }, dur);
+    }
+    
+    return toastId;
 }
 
 function createToastContainer() {
