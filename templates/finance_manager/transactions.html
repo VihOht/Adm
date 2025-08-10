@@ -80,7 +80,7 @@
       </div>
       <div class="stat-title">Total de Receitas</div>
       <div class="stat-value text-success">R$ {{ total_incomes }}</div>
-      <div class="stat-desc">{{ incomes|length }} transação{% if incomes|length != 1 %}ões{% endif %}</div>
+      <div class="stat-desc">{{ incomes|length }}{% if expenses|length != 1 %} transações{% else %} transação{% endif %}</div>
     </div>
     
     <div class="stat bg-base-100 rounded-lg shadow">
@@ -89,7 +89,7 @@
       </div>
       <div class="stat-title">Total de Gastos</div>
       <div class="stat-value text-error">R$ {{ total_expenses }}</div>
-      <div class="stat-desc">{{ expenses|length }}{% if expenses|length != 1 %} transações{{% else %}} transação{{% endif %}</div>
+      <div class="stat-desc">{{ expenses|length }}{% if expenses|length != 1 %} transações{% else %} transação{% endif %}</div>
     </div>
     
     <div class="stat bg-base-100 rounded-lg shadow">

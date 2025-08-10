@@ -14,3 +14,9 @@ Adicionar uma visualização de calendário, onde teria um calendário que com u
 
 Adicionar um fluxo de conversa para a ia
 
+Adicionar legendas ao gráficos
+Remover as informações quando a porcentagem é muito pequena
+
+Remover Nome e Sobrenome
+
+Acicionar sistema para dar zoom no gráfico
