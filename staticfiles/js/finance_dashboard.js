@@ -935,3 +935,196 @@ async function deleteIncomeCategory() {
     }
   }
 }
+
+
+// ============================================
+// IMPORT DATA FUNCTIONALITY
+// ============================================
+
+let selectedFile = null;
+
+function openImportModal() {
+  document.getElementById("importModal").classList.add("modal-open");
+  resetImportModal();
+}
+
+function closeImportModal() {
+  document.getElementById("importModal").classList.remove("modal-open");
+  resetImportModal();
+}
+
+function resetImportModal() {
+  selectedFile = null;
+  document.getElementById("import-file").value = "";
+  document.getElementById("clear-existing").checked = false;
+  document.getElementById("file-info").classList.add("hidden");
+  document.getElementById("import-preview").classList.add("hidden");
+  document.getElementById("import-progress").classList.add("hidden");
+  document.getElementById("import-btn").disabled = true;
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  
+  if (!file) {
+    resetImportModal();
+    return;
+  }
+
+  // Validate file type
+  if (!file.name.toLowerCase().endsWith(".json")) {
+    if (typeof toastError !== "undefined") {
+      toastError("Apenas arquivos JSON são permitidos");
+    } else {
+      alert("Apenas arquivos JSON são permitidos");
+    }
+    event.target.value = "";
+    return;
+  }
+
+  // Validate file size (10MB limit)
+  if (file.size > 10 * 1024 * 1024) {
+    if (typeof toastError !== "undefined") {
+      toastError("Arquivo muito grande. Limite máximo: 10MB");
+    } else {
+      alert("Arquivo muito grande. Limite máximo: 10MB");
+    }
+    event.target.value = "";
+    return;
+  }
+
+  selectedFile = file;
+  
+  // Show file info
+  const fileInfo = document.getElementById("file-info");
+  const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+  fileInfo.innerHTML = `
+    <div class="flex items-center space-x-2">
+      <i data-lucide="file-text" class="w-4 h-4 text-green-600"></i>
+      <span><strong>${file.name}</strong> (${fileSizeMB} MB)</span>
+    </div>
+  `;
+  fileInfo.classList.remove("hidden");
+
+  // Parse and preview file
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      showImportPreview(data);
+      document.getElementById("import-btn").disabled = false;
+    } catch (error) {
+      if (typeof toastError !== "undefined") {
+        toastError("Arquivo JSON inválido");
+      } else {
+        alert("Arquivo JSON inválido");
+      }
+      resetImportModal();
+    }
+  };
+  reader.readAsText(file);
+}
+
+function showImportPreview(data) {
+  const preview = document.getElementById("import-preview");
+  const content = document.getElementById("preview-content");
+  
+  const expenseCategories = data.expense_categories ? data.expense_categories.length : 0;
+  const incomeCategories = data.income_categories ? data.income_categories.length : 0;
+  const expenses = data.expenses ? data.expenses.length : 0;
+  const incomes = data.incomes ? data.incomes.length : 0;
+  const totalRecords = expenseCategories + incomeCategories + expenses + incomes;
+
+  content.innerHTML = `
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <div class="text-gray-600">Categorias de Gastos:</div>
+        <div class="font-semibold">${expenseCategories}</div>
+      </div>
+      <div>
+        <div class="text-gray-600">Categorias de Receitas:</div>
+        <div class="font-semibold">${incomeCategories}</div>
+      </div>
+      <div>
+        <div class="text-gray-600">Gastos:</div>
+        <div class="font-semibold">${expenses}</div>
+      </div>
+      <div>
+        <div class="text-gray-600">Receitas:</div>
+        <div class="font-semibold">${incomes}</div>
+      </div>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-300">
+      <div class="text-gray-600">Total de registros:</div>
+      <div class="font-bold text-lg">${totalRecords}</div>
+    </div>
+  `;
+  
+  preview.classList.remove("hidden");
+}
+
+async function submitImport() {
+  if (!selectedFile) {
+    if (typeof toastError !== "undefined") {
+      toastError("Nenhum arquivo selecionado");
+    } else {
+      alert("Nenhum arquivo selecionado");
+    }
+    return;
+  }
+
+  // Show progress
+  document.getElementById("import-progress").classList.remove("hidden");
+  document.getElementById("import-btn").disabled = true;
+
+  try {
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("clear_existing", document.getElementById("clear-existing").checked);
+    formData.append("csrfmiddlewaretoken", window.csrfToken);
+
+    const response = await fetch(window.importDataUrl, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-CSRFToken": window.csrfToken,
+      },
+    });
+
+    const result = await response.json();
+
+    // Hide progress
+    document.getElementById("import-progress").classList.add("hidden");
+
+    if (result.success) {
+      if (typeof toastSuccess !== "undefined") {
+        toastSuccess(result.message);
+      } else {
+        alert(result.message);
+      }
+      
+      // Close modal and reload page
+      closeImportModal();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      if (typeof toastError !== "undefined") {
+        toastError(result.message);
+      } else {
+        alert("Erro: " + result.message);
+      }
+      document.getElementById("import-btn").disabled = false;
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    document.getElementById("import-progress").classList.add("hidden");
+    document.getElementById("import-btn").disabled = false;
+    
+    if (typeof toastError !== "undefined") {
+      toastError("Erro ao conectar com o servidor");
+    } else {
+      alert("Erro ao conectar com o servidor");
+    }
+  }
+}
