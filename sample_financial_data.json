@@ -1,0 +1,121 @@
+{
+  "exported_at": "2025-08-09T10:00:00",
+  "username": "sample_user",
+  "expense_categories": [
+    {
+      "name": "Food & Dining",
+      "description": "Restaurants, groceries, and food delivery",
+      "color": "#FF6B6B"
+    },
+    {
+      "name": "Transportation",
+      "description": "Gas, public transport, car maintenance",
+      "color": "#4ECDC4"
+    },
+    {
+      "name": "Entertainment",
+      "description": "Movies, games, streaming services",
+      "color": "#45B7D1"
+    },
+    {
+      "name": "Utilities",
+      "description": "Electricity, water, internet, phone",
+      "color": "#FFA07A"
+    },
+    {
+      "name": "Healthcare",
+      "description": "Medical expenses, pharmacy, insurance",
+      "color": "#98D8C8"
+    }
+  ],
+  "income_categories": [
+    {
+      "name": "Salary",
+      "description": "Monthly salary from work",
+      "color": "#2ECC71"
+    },
+    {
+      "name": "Freelance",
+      "description": "Freelance projects and consulting",
+      "color": "#3498DB"
+    },
+    {
+      "name": "Investment",
+      "description": "Dividends, interest, capital gains",
+      "color": "#E74C3C"
+    },
+    {
+      "name": "Gift",
+      "description": "Money received as gifts",
+      "color": "#9B59B6"
+    }
+  ],
+  "expenses": [
+    {
+      "category": "Food & Dining",
+      "spent_at": "2025-08-01",
+      "description": "Grocery shopping",
+      "detailed_description": "Weekly grocery shopping at supermarket",
+      "amount": 15000,
+      "created_at": "2025-08-01T18:30:00"
+    },
+    {
+      "category": "Transportation",
+      "spent_at": "2025-08-02",
+      "description": "Gas station",
+      "detailed_description": "Fuel for car",
+      "amount": 8000,
+      "created_at": "2025-08-02T08:15:00"
+    },
+    {
+      "category": "Entertainment",
+      "spent_at": "2025-08-03",
+      "description": "Netflix subscription",
+      "detailed_description": "Monthly Netflix subscription",
+      "amount": 1599,
+      "created_at": "2025-08-03T12:00:00"
+    },
+    {
+      "category": "Utilities",
+      "spent_at": "2025-08-04",
+      "description": "Electricity bill",
+      "detailed_description": "Monthly electricity bill",
+      "amount": 12000,
+      "created_at": "2025-08-04T09:30:00"
+    },
+    {
+      "category": "Food & Dining",
+      "spent_at": "2025-08-05",
+      "description": "Restaurant dinner",
+      "detailed_description": "Dinner at Italian restaurant",
+      "amount": 4500,
+      "created_at": "2025-08-05T20:45:00"
+    }
+  ],
+  "incomes": [
+    {
+      "category": "Salary",
+      "received_at": "2025-08-01",
+      "description": "Monthly salary",
+      "detailed_description": "August 2025 salary payment",
+      "amount": 500000,
+      "created_at": "2025-08-01T09:00:00"
+    },
+    {
+      "category": "Freelance",
+      "received_at": "2025-08-03",
+      "description": "Web development project",
+      "detailed_description": "Payment for completed web development project",
+      "amount": 150000,
+      "created_at": "2025-08-03T14:20:00"
+    },
+    {
+      "category": "Investment",
+      "received_at": "2025-08-05",
+      "description": "Dividend payment",
+      "detailed_description": "Quarterly dividend from stock portfolio",
+      "amount": 25000,
+      "created_at": "2025-08-05T11:10:00"
+    }
+  ]
+}

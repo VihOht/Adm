@@ -37,4 +37,7 @@ urlpatterns = [
         views.delete_income_category,
         name="delete_income_category",
     ),
+    # Data export/import URLs
+    path("export/", views.export_financial_data, name="export_data"),
+    path("import/", views.import_financial_data, name="import_data"),
 ]

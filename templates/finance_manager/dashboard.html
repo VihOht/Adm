@@ -22,6 +22,7 @@
   window.deleteExpenseUrl = '/finance/expense/'; // Will append ID in JavaScript
   window.editIncomeUrl = '/finance/income/'; // Will append ID in JavaScript
   window.deleteIncomeUrl = '/finance/income/'; // Will append ID in JavaScript
+  window.importDataUrl = '{% url "finance_manager:import_data" %}';
   window.csrfToken = '{{ csrf_token }}';
 </script>
 {% endblock %}
@@ -31,11 +32,25 @@
 <div class="max-w-7xl mx-auto">
   <!-- Page Header -->
   <div class="mb-8">
-    <h1 class="text-3xl font-bold text-base-content mb-2">
-      <i data-lucide="credit-card" class="w-8 h-8 inline-block mr-3"></i>
-      Gestão de Gastos
-    </h1>
-    <p class="text-base-content/70">Controle e monitore seus gastos pessoais</p>
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <h1 class="text-3xl font-bold text-base-content mb-2">
+          <i data-lucide="credit-card" class="w-8 h-8 inline-block mr-3"></i>
+          Gestão de Gastos
+        </h1>
+        <p class="text-base-content/70">Controle e monitore seus gastos pessoais</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="openImportModal()" class="btn btn-outline btn-sm">
+          <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
+          Importar Dados
+        </button>
+        <a href="{% url 'finance_manager:export_data' %}" class="btn btn-outline btn-sm">
+          <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+          Exportar Dados
+        </a>
+      </div>
+    </div>
   </div>
 
   <!-- Quick Stats -->
@@ -617,6 +632,71 @@
       <button class="btn btn-secondary" onclick="submitEditIncome()">
         <i data-lucide="save" class="w-4 h-4 mr-2"></i>
         Salvar Alterações
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Data Modal -->
+<div id="importModal" class="modal">
+  <div class="modal-box">
+    <h3 class="text-lg font-bold mb-4">
+      <i data-lucide="upload" class="w-5 h-5 inline-block mr-2"></i>
+      Importar Dados Financeiros
+    </h3>
+    
+    <div class="space-y-4">
+      <!-- File Upload Area -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Arquivo JSON</span>
+        </label>
+        <div class="flex items-center justify-center w-full">
+          <label for="import-file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+              <i data-lucide="upload-cloud" class="w-8 h-8 mb-3 text-gray-400"></i>
+              <p class="mb-2 text-sm text-gray-500">
+                <span class="font-semibold">Clique para enviar</span> ou arraste e solte
+              </p>
+              <p class="text-xs text-gray-500">Apenas arquivos JSON (máx. 10MB)</p>
+            </div>
+            <input id="import-file" type="file" class="hidden" accept=".json" onchange="handleFileSelect(event)" />
+          </label>
+        </div>
+        <div id="file-info" class="mt-2 text-sm text-gray-600 hidden"></div>
+      </div>
+
+      <!-- Options -->
+      <div class="form-control">
+        <label class="label cursor-pointer">
+          <span class="label-text">Limpar dados existentes antes da importação</span>
+          <input id="clear-existing" type="checkbox" class="checkbox checkbox-warning" />
+        </label>
+        <div class="text-xs text-gray-500 mt-1">
+          ⚠️ Esta opção irá remover todos os seus dados atuais antes de importar os novos dados
+        </div>
+      </div>
+
+      <!-- Preview Area -->
+      <div id="import-preview" class="bg-base-200 rounded-lg p-4 hidden">
+        <h4 class="font-semibold mb-2">Prévia dos dados:</h4>
+        <div id="preview-content" class="text-sm"></div>
+      </div>
+
+      <!-- Progress Area -->
+      <div id="import-progress" class="hidden">
+        <div class="flex items-center space-x-2">
+          <div class="loading loading-spinner loading-sm"></div>
+          <span>Importando dados...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn" onclick="closeImportModal()">Cancelar</button>
+      <button id="import-btn" class="btn btn-primary" onclick="submitImport()" disabled>
+        <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
+        Importar Dados
       </button>
     </div>
   </div>

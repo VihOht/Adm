@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 
@@ -596,4 +596,285 @@ def delete_income(request, income_id):
     except Exception as e:
         return JsonResponse(
             {"success": False, "message": f"Erro ao excluir receita: {str(e)}"}
+        )
+
+
+@login_required
+def export_financial_data(request):
+    """Export user's financial data as JSON file"""
+
+    user = request.user
+
+    # Prepare data structure
+    data = {
+        "exported_at": datetime.now().isoformat(),
+        "username": user.username,
+        "expense_categories": [],
+        "income_categories": [],
+        "expenses": [],
+        "incomes": [],
+    }
+
+    # Export expense categories
+    for category in ExpenseCategory.objects.filter(user=user):
+        data["expense_categories"].append(
+            {
+                "name": category.name,
+                "description": category.description,
+                "color": category.color,
+            }
+        )
+
+    # Export income categories
+    for category in IncomeCategorys.objects.filter(user=user):
+        data["income_categories"].append(
+            {
+                "name": category.name,
+                "description": category.description,
+                "color": category.color,
+            }
+        )
+
+    # Export expenses
+    for expense in Expenses.objects.filter(user=user).order_by("-spent_at"):
+        data["expenses"].append(
+            {
+                "category": expense.category.name if expense.category else None,
+                "spent_at": expense.spent_at.strftime("%Y-%m-%d"),
+                "description": expense.description,
+                "detailed_description": expense.detailed_description,
+                "amount": expense.amount,
+                "created_at": expense.created_at.isoformat(),
+            }
+        )
+
+    # Export incomes
+    for income in Incomes.objects.filter(user=user).order_by("-received_at"):
+        data["incomes"].append(
+            {
+                "category": income.category.name if income.category else None,
+                "received_at": income.received_at.strftime("%Y-%m-%d"),
+                "description": income.description,
+                "detailed_description": income.detailed_description,
+                "amount": income.amount,
+                "created_at": income.created_at.isoformat(),
+            }
+        )
+
+    # Create HTTP response with JSON data
+    response = HttpResponse(
+        json.dumps(data, indent=2, ensure_ascii=False),
+        content_type="application/json",
+    )
+
+    # Set download headers
+    filename = f"financial_data_{user.username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    return response
+
+
+@login_required
+@require_POST
+def import_financial_data(request):
+    """Import user's financial data from uploaded JSON file"""
+    try:
+        # Check if file was uploaded
+        if "file" not in request.FILES:
+            return JsonResponse(
+                {"success": False, "message": "Nenhum arquivo foi enviado."}
+            )
+
+        uploaded_file = request.FILES["file"]
+
+        # Validate file type
+        if not uploaded_file.name.endswith(".json"):
+            return JsonResponse(
+                {"success": False, "message": "Apenas arquivos JSON são permitidos."}
+            )
+
+        # Check file size (limit to 10MB)
+        if uploaded_file.size > 10 * 1024 * 1024:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "Arquivo muito grande. Limite máximo: 10MB.",
+                }
+            )
+
+        # Read and parse JSON
+        try:
+            file_content = uploaded_file.read().decode("utf-8")
+            data = json.loads(file_content)
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "message": "Arquivo JSON inválido."})
+        except UnicodeDecodeError:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "Codificação do arquivo inválida. Use UTF-8.",
+                }
+            )
+
+        # Validate JSON structure
+        required_fields = [
+            "expense_categories",
+            "income_categories",
+            "expenses",
+            "incomes",
+        ]
+        for field in required_fields:
+            if field not in data:
+                return JsonResponse(
+                    {"success": False, "message": f"Campo obrigatório ausente: {field}"}
+                )
+
+        user = request.user
+        clear_data = request.POST.get("clear_existing", "false").lower() == "true"
+
+        # Import data using transaction for atomicity
+        from django.db import transaction
+
+        with transaction.atomic():
+            if clear_data:
+                # Clear existing data
+                Expenses.objects.filter(user=user).delete()
+                Incomes.objects.filter(user=user).delete()
+                ExpenseCategory.objects.filter(user=user).delete()
+                IncomeCategorys.objects.filter(user=user).delete()
+
+            # Import expense categories
+            expense_categories = {}
+            categories_created = 0
+            for cat_data in data.get("expense_categories", []):
+                if not cat_data.get("name"):
+                    continue
+
+                category, created = ExpenseCategory.objects.get_or_create(
+                    user=user,
+                    name=cat_data["name"],
+                    defaults={
+                        "description": cat_data.get("description", ""),
+                        "color": cat_data.get("color", "#FFFFFF"),
+                    },
+                )
+                expense_categories[cat_data["name"]] = category
+                if created:
+                    categories_created += 1
+
+            # Import income categories
+            income_categories = {}
+            income_categories_created = 0
+            for cat_data in data.get("income_categories", []):
+                if not cat_data.get("name"):
+                    continue
+
+                category, created = IncomeCategorys.objects.get_or_create(
+                    user=user,
+                    name=cat_data["name"],
+                    defaults={
+                        "description": cat_data.get("description", ""),
+                        "color": cat_data.get("color", "#FFFFFF"),
+                    },
+                )
+                income_categories[cat_data["name"]] = category
+                if created:
+                    income_categories_created += 1
+
+            # Import expenses
+            expenses_created = 0
+            expenses_skipped = 0
+            for expense_data in data.get("expenses", []):
+                try:
+                    category = None
+                    if expense_data.get("category"):
+                        category = expense_categories.get(expense_data["category"])
+
+                    spent_at = datetime.strptime(
+                        expense_data["spent_at"], "%Y-%m-%d"
+                    ).date()
+
+                    Expenses.objects.create(
+                        user=user,
+                        category=category,
+                        spent_at=spent_at,
+                        description=expense_data.get("description", ""),
+                        detailed_description=expense_data.get(
+                            "detailed_description", ""
+                        ),
+                        amount=int(expense_data.get("amount", 0)),
+                    )
+                    expenses_created += 1
+                except (ValueError, KeyError, TypeError):
+                    expenses_skipped += 1
+                    continue
+
+            # Import incomes
+            incomes_created = 0
+            incomes_skipped = 0
+            for income_data in data.get("incomes", []):
+                try:
+                    category = None
+                    if income_data.get("category"):
+                        category = income_categories.get(income_data["category"])
+
+                    received_at = datetime.strptime(
+                        income_data["received_at"], "%Y-%m-%d"
+                    ).date()
+
+                    Incomes.objects.create(
+                        user=user,
+                        category=category,
+                        received_at=received_at,
+                        description=income_data.get("description", ""),
+                        detailed_description=income_data.get(
+                            "detailed_description", ""
+                        ),
+                        amount=int(income_data.get("amount", 0)),
+                    )
+                    incomes_created += 1
+                except (ValueError, KeyError, TypeError):
+                    incomes_skipped += 1
+                    continue
+
+        # Prepare success message
+        total_created = (
+            categories_created
+            + income_categories_created
+            + expenses_created
+            + incomes_created
+        )
+        total_skipped = expenses_skipped + incomes_skipped
+
+        message_parts = [
+            "Importação concluída com sucesso!",
+            f"✅ {categories_created} categorias de gastos",
+            f"✅ {income_categories_created} categorias de receitas",
+            f"✅ {expenses_created} gastos",
+            f"✅ {incomes_created} receitas",
+        ]
+
+        if total_skipped > 0:
+            message_parts.append(
+                f"⚠️ {total_skipped} registros ignorados por dados inválidos"
+            )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "\n".join(message_parts),
+                "stats": {
+                    "expense_categories": categories_created,
+                    "income_categories": income_categories_created,
+                    "expenses": expenses_created,
+                    "incomes": incomes_created,
+                    "total_created": total_created,
+                    "total_skipped": total_skipped,
+                },
+            }
+        )
+
+    except Exception as e:
+        return JsonResponse(
+            {"success": False, "message": f"Erro durante a importação: {str(e)}"}
         )
