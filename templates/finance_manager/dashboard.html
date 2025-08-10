@@ -103,7 +103,7 @@
               <tr>
                 <td>{{ expense.spent_at | date:"D, d M, Y" }}</td>
                 <td>{{ expense.description }}</td>
-                <td><span class="badge badge-primary border-hidden shadow-md opacity-80" style="background-color:{{ expense.category.color }}; important!">{{ expense.category }}</span></td>
+                <td><span class="badge badge-primary border-hidden shadow-md opacity-80" style="background-color:{{ expense.category.color }}; important!">{{ expense.category.name }}</span></td>
                 {% with am=expense.amount %}
                 <td class="text-error font-semibold">R$ {{ am|intdiv:100 }}{% if am|mod:100 == 0 %},00{%elif am|mod:100 < 10%},0{{am|mod:100}}{% else %},{{am|mod:100}}{% endif %}</td>
                 {% endwith %}
@@ -152,7 +152,7 @@
                 <td>{{ income.description }}</td>
                 <td>
                   {% if income.category %}
-                    <span class="badge badge-secondary border-hidden shadow-md" style="background-color:{{ income.category.color }}; color: white;">{{ income.category }}</span>
+                    <span class="badge badge-secondary border-hidden shadow-md" style="background-color:{{ income.category.color }}; color: white;">{{ income.category.name }}</span>
                   {% else %}
                     <span class="badge badge-ghost">Sem categoria</span>
                   {% endif %}

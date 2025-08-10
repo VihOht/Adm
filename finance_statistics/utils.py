@@ -19,8 +19,12 @@ def get_finance_dataframes(user):
     try:
         expenses_values = Expenses.objects.filter(user__email=user).values()
         incomes_values = Incomes.objects.filter(user__email=user).values()
-        expense_category_values = ExpenseCategory.objects.all().values()
-        income_categorys_values = IncomeCategorys.objects.all().values()
+        expense_category_values = ExpenseCategory.objects.filter(
+            user__email=user
+        ).values()
+        income_categorys_values = IncomeCategorys.objects.filter(
+            user__email=user
+        ).values()
 
         df_expenses = pd.DataFrame(expenses_values)
         df_incomes = pd.DataFrame(incomes_values)

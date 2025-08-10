@@ -21,8 +21,8 @@ def dashboard(request):
         spent_at__month=datetime.now().month,
     )
     incomes = Incomes.objects.filter(user=request.user).order_by("-received_at")[:5]
-    expense_categories = ExpenseCategory.objects.all()
-    income_categories = IncomeCategorys.objects.all()
+    expense_categories = ExpenseCategory.objects.filter(user=request.user)
+    income_categories = IncomeCategorys.objects.filter(user=request.user)
 
     total_expenses = sum([x.amount for x in Expenses.objects.filter(user=request.user)])
     total_incomes = sum([x.amount for x in Incomes.objects.filter(user=request.user)])
@@ -98,8 +98,8 @@ def transactions(request):
     all_transactions.sort(key=lambda x: x["date"], reverse=True)
 
     # Get categories for editing
-    expense_categories = ExpenseCategory.objects.all()
-    income_categories = IncomeCategorys.objects.all()
+    expense_categories = ExpenseCategory.objects.filter(user=request.user)
+    income_categories = IncomeCategorys.objects.filter(user=request.user)
 
     # Calculate totals
     total_expenses = sum([x.amount for x in expenses])
@@ -137,7 +137,17 @@ def create_expense(request):
         # Get or create category
         category = None
         if data.get("category_id"):
-            category = ExpenseCategory.objects.get(id=data["category_id"])
+            try:
+                category = ExpenseCategory.objects.get(
+                    id=data["category_id"], user=request.user
+                )
+            except ExpenseCategory.DoesNotExist:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Categoria não encontrada ou não pertence ao usuário.",
+                    }
+                )
 
         # Convert amount from cents to integer (assuming input is in reais)
         amount_in_cents = int(float(data["amount"]) * 100)
@@ -177,6 +187,7 @@ def create_category(request):
         data = json.loads(request.body)
 
         category = ExpenseCategory.objects.create(
+            user=request.user,
             name=data["name"],
             description=data.get("description", ""),
             color=data.get("color", "#FFFFFF"),
@@ -206,7 +217,7 @@ def create_category(request):
 def edit_category(request, category_id):
     """Edit an existing expense category via AJAX"""
     try:
-        category = get_object_or_404(ExpenseCategory, id=category_id)
+        category = get_object_or_404(ExpenseCategory, id=category_id, user=request.user)
         data = json.loads(request.body)
 
         # Update category
@@ -241,7 +252,7 @@ def edit_category(request, category_id):
 def delete_category(request, category_id):
     """Delete an existing expense category and all related expenses via AJAX"""
     try:
-        category = get_object_or_404(ExpenseCategory, id=category_id)
+        category = get_object_or_404(ExpenseCategory, id=category_id, user=request.user)
 
         # Count related expenses before deletion
         related_expenses_count = Expenses.objects.filter(category=category).count()
@@ -276,7 +287,7 @@ def delete_category(request, category_id):
 def edit_income_category(request, category_id):
     """Edit an existing income category via AJAX"""
     try:
-        category = get_object_or_404(IncomeCategorys, id=category_id)
+        category = get_object_or_404(IncomeCategorys, id=category_id, user=request.user)
         data = json.loads(request.body)
 
         # Update category
@@ -316,7 +327,7 @@ def edit_income_category(request, category_id):
 def delete_income_category(request, category_id):
     """Delete an existing income category and all related incomes via AJAX"""
     try:
-        category = get_object_or_404(IncomeCategorys, id=category_id)
+        category = get_object_or_404(IncomeCategorys, id=category_id, user=request.user)
 
         # Count related incomes before deletion
         related_incomes_count = Incomes.objects.filter(category=category).count()
@@ -362,7 +373,17 @@ def edit_expense(request, expense_id):
         # Get or update category
         category = None
         if data.get("category_id"):
-            category = ExpenseCategory.objects.get(id=data["category_id"])
+            try:
+                category = ExpenseCategory.objects.get(
+                    id=data["category_id"], user=request.user
+                )
+            except ExpenseCategory.DoesNotExist:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Categoria não encontrada ou não pertence ao usuário.",
+                    }
+                )
 
         # Convert amount from cents to integer (assuming input is in reais)
         amount_in_cents = int(float(data["amount"]) * 100)
@@ -427,7 +448,17 @@ def create_income(request):
         # Get or create category
         category = None
         if data.get("category_id"):
-            category = IncomeCategorys.objects.get(id=data["category_id"])
+            try:
+                category = IncomeCategorys.objects.get(
+                    id=data["category_id"], user=request.user
+                )
+            except IncomeCategorys.DoesNotExist:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Categoria não encontrada ou não pertence ao usuário.",
+                    }
+                )
 
         # Convert amount from cents to integer (assuming input is in reais)
         amount_in_cents = int(float(data["amount"]) * 100)
@@ -467,6 +498,7 @@ def create_income_category(request):
         data = json.loads(request.body)
 
         category = IncomeCategorys.objects.create(
+            user=request.user,
             name=data["name"],
             description=data.get("description", ""),
             color=data.get("color", "#FFFFFF"),
@@ -502,7 +534,17 @@ def edit_income(request, income_id):
         # Get or update category
         category = None
         if data.get("category_id"):
-            category = IncomeCategorys.objects.get(id=data["category_id"])
+            try:
+                category = IncomeCategorys.objects.get(
+                    id=data["category_id"], user=request.user
+                )
+            except IncomeCategorys.DoesNotExist:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "message": "Categoria não encontrada ou não pertence ao usuário.",
+                    }
+                )
 
         # Convert amount from cents to integer (assuming input is in reais)
         amount_in_cents = int(float(data["amount"]) * 100)

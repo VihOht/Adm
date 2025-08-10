@@ -6,15 +6,17 @@ from django.db import models
 
 
 class ExpenseCategory(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=300)
     color = ColorField(default="#FFFFFF")
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.user.username})"
 
     class Meta:
         verbose_name_plural = "Expense Categories"
+        unique_together = ["user", "name"]  # Prevent duplicate category names per user
 
 
 class Expenses(models.Model):
@@ -30,15 +32,17 @@ class Expenses(models.Model):
 
 
 class IncomeCategorys(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=300)
     color = ColorField(default="#FFFFFF")
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.user.username})"
 
     class Meta:
         verbose_name_plural = "Income Categories"
+        unique_together = ["user", "name"]  # Prevent duplicate category names per user
 
 
 class Incomes(models.Model):

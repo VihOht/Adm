@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-base-200 flex items-center justify-center p-4">
+  <div class="max-w-md mx-auto w-full">
+    <!-- Register Card -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <!-- Header -->
+        <div class="text-center mb-6">
+          <h1 class="text-3xl font-bold text-primary mb-2">
+            <i data-lucide="user-plus" class="w-8 h-8 inline-block mr-2"></i>
+            Criar Conta
+          </h1>
+          <p class="text-sm text-base-content/70">
+            Crie sua conta para acessar o sistema
+          </p>
+        </div>
+
+        <!-- Register Form -->
+        <form method="post" class="space-y-4">
+          {% csrf_token %}
+          
+          <!-- Username Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">
+                <i data-lucide="user" class="w-4 h-4 inline-block mr-1"></i>
+                Nome de Usuário
+              </span>
+            </label>
+            <input 
+              type="text" 
+              name="username" 
+              placeholder="seu_usuario" 
+              class="input input-bordered w-full" 
+              required 
+              value="{{ request.POST.username|default:'' }}"
+            />
+          </div>
+
+          <!-- Email Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">
+                <i data-lucide="mail" class="w-4 h-4 inline-block mr-1"></i>
+                Email
+              </span>
+            </label>
+            <input 
+              type="email" 
+              name="email" 
+              placeholder="seu@email.com" 
+              class="input input-bordered w-full" 
+              required 
+              value="{{ request.POST.email|default:'' }}"
+            />
+          </div>
+
+          <!-- First Name Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">
+                <i data-lucide="user" class="w-4 h-4 inline-block mr-1"></i>
+                Nome
+              </span>
+            </label>
+            <input 
+              type="text" 
+              name="first_name" 
+              placeholder="Seu nome" 
+              class="input input-bordered w-full" 
+              value="{{ request.POST.first_name|default:'' }}"
+            />
+          </div>
+
+          <!-- Last Name Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">
+                <i data-lucide="user" class="w-4 h-4 inline-block mr-1"></i>
+                Sobrenome
+              </span>
+            </label>
+            <input 
+              type="text" 
+              name="last_name" 
+              placeholder="Seu sobrenome" 
+              class="input input-bordered w-full" 
+              value="{{ request.POST.last_name|default:'' }}"
+            />
+          </div>
+
+          <!-- Password Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">
+                <i data-lucide="lock" class="w-4 h-4 inline-block mr-1"></i>
+                Senha
+              </span>
+            </label>
+            <input 
+              type="password" 
+              name="password1" 
+              placeholder="••••••••" 
+              class="input input-bordered w-full" 
+              required 
+            />
+            <label class="label">
+              <span class="label-text-alt">Mínimo 8 caracteres</span>
+            </label>
+          </div>
+
+          <!-- Confirm Password Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">
+                <i data-lucide="lock" class="w-4 h-4 inline-block mr-1"></i>
+                Confirmar Senha
+              </span>
+            </label>
+            <input 
+              type="password" 
+              name="password2" 
+              placeholder="••••••••" 
+              class="input input-bordered w-full" 
+              required 
+            />
+          </div>
+
+          <!-- Terms and Conditions -->
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start">
+              <input type="checkbox" name="accept_terms" class="checkbox checkbox-primary mr-2" required />
+              <span class="label-text">Aceito os termos e condições</span>
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="form-control mt-6">
+            <button type="submit" class="btn btn-primary w-full">
+              <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i>
+              Criar Conta
+            </button>
+          </div>
+        </form>
+
+        <!-- Additional Links -->
+        <div class="divider text-xs">ou</div>
+        
+        <div class="text-center space-y-2">
+          <a href="{% url 'authentication:login' %}" class="link link-hover text-sm text-base-content/70">
+            <i data-lucide="log-in" class="w-4 h-4 inline-block mr-1"></i>
+            Já tem uma conta? Fazer login
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mt-6 text-sm text-base-content/50">
+      VihOhtLife - Sistema Pessoal de Administração
+    </div>
+  </div>
+</div>
+{% endblock %}
