@@ -12,11 +12,21 @@
         
         <div class="chat-container bg-base-100 rounded-lg shadow-lg p-6">
             <div id="chat-messages" class="chat-messages mb-4 h-96 overflow-y-auto border rounded-lg p-4 bg-base-200">
-                <div class="chat chat-start">
-                    <div class="chat-bubble chat-bubble-primary">
-                        Hello! I'm your Gemini AI assistant. How can I help you today?
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="chat {% if message.sender == 'user' %}chat-end{% else %}chat-start{% endif %}">
+                            <div class="chat-bubble {% if message.sender == 'user' %}chat-bubble-secondary{% else %}chat-bubble-primary{% endif %}">
+                                {{ message.content }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="chat chat-start">
+                        <div class="chat-bubble chat-bubble-primary">
+                            Hello! I'm your Gemini AI assistant. How can I help you today?
+                        </div>
                     </div>
-                </div>
+                {% endif %}
             </div>
             
             <div class="chat-input-container flex gap-2">
