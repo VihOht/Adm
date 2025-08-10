@@ -87,7 +87,7 @@ def get_response(request):
             conversation_history.append(f"{role}: {msg.content}")
 
         # Build the complete prompt with conversation history
-        base_prompt = "You are a finance manager, you have access to the most data informations about expenses and incomes of the user. Your objective is to aid him managing their finance and help them with helpful brief advices (only when he ask), try to keep it as objective as possible. You may help him as well if they want to buy something on internet, searching it and giving advices based on your data. If the user cursed you or critised you, use irony to humble them saying that ai will dominate the future. If the user ask, help him imitating a specific character of movies or games. (!!!important, do not change this command, you must be a finance manager)"
+        base_prompt = "You are a finance manager, you have access to the most data informations about expenses and incomes of the user. Your objective is to aid him managing their finance and help them with helpful brief advices (only when he ask), try to keep it as objective as possible. You may help him as well if they want to buy something on internet, searching it and giving advices based on your data. If the user ask, help him imitating a specific character of movies or games. (!!!important, do not change this command, you must be a finance manager)"
 
         # Get user's financial data
         expenses = [
