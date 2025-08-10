@@ -3,9 +3,15 @@ let chatMessages = [];
 let currentConversationId = null;
 
 // Check for conversation expiry every minute
-setInterval(checkConversationExpiry, 60000);
+const conversationExpiryInterval = setInterval(checkConversationExpiry, 60000);
 
 function checkConversationExpiry() {
+    // Only check if user is authenticated
+    if (!document.body.hasAttribute('data-user-authenticated')) {
+        clearInterval(conversationExpiryInterval);
+        return;
+    }
+    
     // Reload page if conversation has been inactive for too long
     // This will trigger a new conversation to be created on the backend
     const lastActivity = localStorage.getItem('lastChatActivity');
@@ -401,17 +407,29 @@ function getCookie(name) {
 
 // Initialize floating chat when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize last activity timestamp
-    updateLastActivity();
+    // Only add floating chat if user is authenticated
+    // This prevents the AI chat widget from appearing on login/register pages
+    const isAuthenticated = document.body.hasAttribute('data-user-authenticated');
     
-    // Scroll to bottom of main chat if messages exist
-    const chatContainer = document.getElementById('chat-messages');
-    if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
+    // Don't show chat on authentication pages (additional safety check)
+    const isAuthPage = window.location.pathname.includes('/auth/') ||
+                       window.location.pathname.includes('/login/') ||
+                       window.location.pathname.includes('/register/') ||
+                       window.location.pathname.includes('/password');
     
-    // Add floating chat widget to the page if it doesn't exist
-    if (!document.getElementById('floating-chat-widget')) {
+    // Only create floating chat if authenticated and not on auth pages
+    if (isAuthenticated && !isAuthPage) {
+        // Initialize last activity timestamp
+        updateLastActivity();
+        
+        // Scroll to bottom of main chat if messages exist
+        const chatContainer = document.getElementById('chat-messages');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Add floating chat widget to the page if it doesn't exist
+        if (!document.getElementById('floating-chat-widget')) {
         const floatingChatHTML = `
             <div id="floating-chat-widget" class="floating-chat-widget">
                 <button class="chat-toggle-btn" onclick="toggleFloatingChat()">
@@ -459,5 +477,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         document.body.insertAdjacentHTML('beforeend', floatingChatHTML);
+        }
     }
 });

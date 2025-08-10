@@ -1,5 +1,38 @@
 // Gemini Chat Functionality
 let chatMessages = [];
+let currentConversationId = null;
+
+// Check for conversation expiry every minute
+const conversationExpiryInterval = setInterval(checkConversationExpiry, 60000);
+
+function checkConversationExpiry() {
+    // Only check if user is authenticated
+    if (!document.body.hasAttribute('data-user-authenticated')) {
+        clearInterval(conversationExpiryInterval);
+        return;
+    }
+    
+    // Reload page if conversation has been inactive for too long
+    // This will trigger a new conversation to be created on the backend
+    const lastActivity = localStorage.getItem('lastChatActivity');
+    if (lastActivity) {
+        const timeDiff = Date.now() - parseInt(lastActivity);
+        const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+        
+        if (timeDiff > tenMinutes) {
+            if (typeof toastInfo !== 'undefined') {
+                toastInfo('Conversation expired. Starting a new conversation...');
+            }
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        }
+    }
+}
+
+function updateLastActivity() {
+    localStorage.setItem('lastChatActivity', Date.now().toString());
+}
 
 function handleEnterKey(event) {
     if (event.key === 'Enter') {
@@ -12,6 +45,9 @@ function sendMessage() {
     const message = input.value.trim();
     
     if (message === '') return;
+    
+    // Update last activity
+    updateLastActivity();
     
     // Add user message
     addMessage(message, 'user');
@@ -86,6 +122,14 @@ async function generateResponse(userMessage) {
       });
       const result = await response.json();
       if (result.success){
+        // Update conversation ID if provided
+        if (result.conversation_id) {
+          currentConversationId = result.conversation_id;
+        }
+        
+        // Update last activity
+        updateLastActivity();
+        
         if (typeof toastSuccess !== 'undefined') {
           toastSuccess(result.message)
         } else {
@@ -128,12 +172,20 @@ async function generateFloatingResponse(userMessage) {
       });
       const result = await response.json();
       if (result.success){
+        // Update conversation ID if provided
+        if (result.conversation_id) {
+          currentConversationId = result.conversation_id;
+        }
+        
+        // Update last activity
+        updateLastActivity();
+        
         if (typeof toastSuccess !== 'undefined') {
           toastSuccess(result.message)
         } else {
           console.log(result.message)
         }
-        addFloatingMessage(result.ai_response, 'ai')
+        addFloatingMessage(result.ai_response, 'ai', true)
         hideFloatingTypingIndicator()
       }
       else {
@@ -158,6 +210,8 @@ async function generateFloatingResponse(userMessage) {
 }
 
 // Floating Chat Widget Functionality
+let floatingChatLoaded = false;
+
 function toggleFloatingChat() {
     const chatWindow = document.getElementById('floating-chat-window');
     const isVisible = chatWindow.style.display === 'flex';
@@ -166,11 +220,80 @@ function toggleFloatingChat() {
         chatWindow.style.display = 'none';
     } else {
         chatWindow.style.display = 'flex';
+        
+        // Load conversation messages if not already loaded
+        if (!floatingChatLoaded) {
+            loadFloatingChatMessages();
+            floatingChatLoaded = true;
+        }
+        
         // Focus on input when opening
         setTimeout(() => {
             const input = document.getElementById('floating-chat-input');
             if (input) input.focus();
         }, 100);
+    }
+}
+
+async function loadFloatingChatMessages() {
+    try {
+        const response = await fetch('/ai/get_messages/', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Clear default message
+            const chatContainer = document.getElementById('floating-chat-messages');
+            chatContainer.innerHTML = '';
+            
+            // Add all conversation messages
+            if (result.messages && result.messages.length > 0) {
+                result.messages.forEach(message => {
+                    addFloatingMessage(message.content, message.sender, false);
+                });
+                
+                // Scroll to bottom after loading all messages
+                setTimeout(() => {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }, 100);
+            } else {
+                // Add default welcome message if no conversation exists
+                addFloatingMessage("Hi! I'm your Gemini AI assistant. How can I help you today?", 'ai', false);
+            }
+            
+            // Update conversation ID
+            if (result.conversation_id) {
+                currentConversationId = result.conversation_id;
+            }
+        } else {
+            console.error('Failed to load conversation messages:', result.message);
+            // Show default message on error
+            const chatContainer = document.getElementById('floating-chat-messages');
+            chatContainer.innerHTML = `
+                <div class="chat chat-start">
+                    <div class="chat-bubble chat-bubble-primary">
+                        Hi! I'm your Gemini AI assistant. How can I help you today?
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading floating chat messages:', error);
+        // Show default message on error
+        const chatContainer = document.getElementById('floating-chat-messages');
+        chatContainer.innerHTML = `
+            <div class="chat chat-start">
+                <div class="chat-bubble chat-bubble-primary">
+                    Hi! I'm your Gemini AI assistant. How can I help you today?
+                </div>
+            </div>
+        `;
     }
 }
 
@@ -184,8 +307,11 @@ function sendFloatingMessage() {
     
     if (message === '') return;
     
+    // Update last activity
+    updateLastActivity();
+    
     // Add user message to floating chat
-    addFloatingMessage(message, 'user');
+    addFloatingMessage(message, 'user', true);
     input.value = '';
     
     // Show typing indicator in floating chat
@@ -195,7 +321,7 @@ function sendFloatingMessage() {
     generateFloatingResponse(message);
 }
 
-function addFloatingMessage(message, sender) {
+function addFloatingMessage(message, sender, shouldScroll = true) {
     const chatContainer = document.getElementById('floating-chat-messages');
     const messageDiv = document.createElement('div');
     
@@ -208,8 +334,10 @@ function addFloatingMessage(message, sender) {
     messageDiv.appendChild(bubbleDiv);
     chatContainer.appendChild(messageDiv);
     
-    // Scroll to bottom
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    // Scroll to bottom only if requested (for new messages, not when loading history)
+    if (shouldScroll) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
 }
 
 function showFloatingTypingIndicator() {
@@ -279,8 +407,28 @@ function getCookie(name) {
 
 // Initialize floating chat when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Add floating chat widget to the page if it doesn't exist
-    if (!document.getElementById('floating-chat-widget')) {
+    // Only add floating chat if user is authenticated
+    const isAuthenticated = document.body.hasAttribute('data-user-authenticated');
+    
+    // Don't show chat on authentication pages
+    const isAuthPage = window.location.pathname.includes('/auth/') ||
+                       window.location.pathname.includes('/login/') ||
+                       window.location.pathname.includes('/register/') ||
+                       window.location.pathname.includes('/password');
+    
+    // Only create floating chat if authenticated and not on auth pages
+    if (isAuthenticated && !isAuthPage) {
+        // Initialize last activity timestamp
+        updateLastActivity();
+        
+        // Scroll to bottom of main chat if messages exist
+        const chatContainer = document.getElementById('chat-messages');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Add floating chat widget to the page if it doesn't exist
+        if (!document.getElementById('floating-chat-widget')) {
         const floatingChatHTML = `
             <div id="floating-chat-widget" class="floating-chat-widget">
                 <button class="chat-toggle-btn" onclick="toggleFloatingChat()">
@@ -305,11 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <div id="floating-chat-messages" class="floating-chat-messages">
-                        <div class="chat chat-start">
-                            <div class="chat-bubble chat-bubble-primary">
-                                Hi! I'm your Gemini AI assistant. How can I help you today?
-                            </div>
-                        </div>
+                        <!-- Messages will be loaded dynamically -->
                     </div>
                     
                     <div class="floating-chat-input-container">
@@ -332,5 +476,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         document.body.insertAdjacentHTML('beforeend', floatingChatHTML);
+        }
     }
 });

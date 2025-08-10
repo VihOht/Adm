@@ -24,7 +24,7 @@
     />
     {% block extra_head %}{% endblock %}
   </head>
-  <body class="min-h-screen">
+  <body class="min-h-screen" {% if user.is_authenticated %}data-user-authenticated="true"{% endif %}>
     {% block content %}{% endblock %}
     
     <!-- Toast Messages Container -->
