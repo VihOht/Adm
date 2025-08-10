@@ -169,9 +169,7 @@ def password_reset_view(request):
                 )
                 messages.success(request, "Email de recuperação enviado com sucesso!")
             except Exception as e:
-                # If email fails, still redirect but show the link in messages for development
                 print(f"Email error: {e}")
-                print(f"Password reset link: {reset_link}")  # For development
                 messages.warning(
                     request,
                     "Email não pôde ser enviado. Verifique a configuração do servidor de email.",
