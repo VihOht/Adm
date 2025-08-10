@@ -111,7 +111,7 @@ def get_response(request):
             for x in Incomes.objects.filter(user=request.user)
         ]
         total = {"expenses": expenses, "incomes": incomes}
-        df_information = "The data amount are in Cents Reais BRL, from cents to reais should be 123456 cents == R$ 1.234,56"
+        df_information = "The data amount are in Cents Reais BRL, from cents to reais should be 123456 cents == R$ 1.234,56. Always uses Reais BRL."
 
         # Include conversation history in prompt
         conversation_context = (
