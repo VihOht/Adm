@@ -100,7 +100,7 @@ def day_transactions_ajax(request):
         return JsonResponse({"error": "Day not found"}, status=404)
 
     print(date)
-
+    
     return JsonResponse(
         {
             "date": date,

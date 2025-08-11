@@ -1,0 +1,22 @@
+Colocar no padrão de gastos diarios, limitar os dias aos dias ativos e mês atual
+Adicionar ferramenta de pesquisa google
+Consertar o Toast message
+Orfélio — 2:55 PM
+robson.santosfranca.ismart@gmail.com
+Ohtto123*
+Criar classe de Usuária
+Orfélio — 3:07 PM
+Adicionar simbolo do site
+
+
+Seraphim:
+Adicionar uma visualização de calendário, onde teria um calendário que com um hover você consegue as informações resumidas do dia, e clicando você acessa todos as transferencias daquele dia, o dia no grafìco tem que ter uma barrinha indicando se teve alguma transferencia no dia, verde para saldo positivo, vermelho para saldo negativo.
+
+Adicionar um fluxo de conversa para a ia
+
+Adicionar legendas ao gráficos
+Remover as informações quando a porcentagem é muito pequena
+
+Remover Nome e Sobrenome
+
+Acicionar sistema para dar zoom no gráfico
