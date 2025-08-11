@@ -1,17 +1,7 @@
 {% extends 'finance_statistics/base.html' %}
 {% load static %}
 
-{% block finance_content %}
-<div class="max-w-7xl mx-auto">
-  <!-- Page Header -->
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-base-content mb-2">
-      <i data-lucide="bar-chart-3" class="w-8 h-8 inline-block mr-3"></i>
-      Estatísticas Financeiras
-    </h1>
-    <p class="text-base-content/70">Análise visual dos seus dados financeiros</p>
-  </div>
-
+{% block finance_statistics_content %}
   <!-- Quick Stats Cards -->
   <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
     <div class="stat bg-base-100 rounded-lg shadow">
@@ -66,7 +56,7 @@
             {% if expense_category_graph %}
               <img src="data:image/png;base64,{{ expense_category_graph }}" 
                    alt="Gráfico de Gastos por Categoria" 
-                   class="w-full h-auto max-h-[280px] object-contain">
+                   class="w-full h-auto max-h-[280px] object-contain chart-image">
             {% else %}
               <div class="text-center text-base-content/50">
                 <i data-lucide="image" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
@@ -91,7 +81,7 @@
             {% if monthly_expenses_graph %}
               <img src="data:image/png;base64,{{ monthly_expenses_graph }}" 
                    alt="Gráfico de Tendência Mensal de Gastos" 
-                   class="w-full h-auto max-h-[280px] object-contain">
+                   class="w-full h-auto max-h-[280px] object-contain chart-image">
             {% else %}
               <div class="text-center text-base-content/50">
                 <i data-lucide="image" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
@@ -116,7 +106,7 @@
             {% if income_expenses_graph %}
               <img src="data:image/png;base64,{{ income_expenses_graph }}" 
                    alt="Gráfico de Comparação Receitas vs Gastos por Mês" 
-                   class="w-full h-auto max-h-[380px] object-contain">
+                   class="w-full h-auto max-h-[380px] object-contain chart-image">
             {% else %}
               <div class="text-center text-base-content/50">
                 <i data-lucide="image" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
@@ -141,7 +131,7 @@
             {% if income_category_graph %}
               <img src="data:image/png;base64,{{ income_category_graph }}" 
                    alt="Gráfico de Receitas por Categoria" 
-                   class="w-full h-auto max-h-[280px] object-contain">
+                   class="w-full h-auto max-h-[280px] object-contain chart-image">
             {% else %}
               <div class="text-center text-base-content/50">
                 <i data-lucide="image" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
@@ -171,7 +161,7 @@
             {% if daily_spending_graph %}
               <img src="data:image/png;base64,{{ daily_spending_graph }}" 
                    alt="Gráfico de Padrão de Gastos Diários" 
-                   class="w-full h-auto max-h-[380px] object-contain">
+                   class="w-full h-auto max-h-[380px] object-contain chart-image">
             {% else %}
               <div class="text-center text-base-content/50">
                 <i data-lucide="image" class="w-20 h-20 mx-auto mb-4 opacity-30"></i>
@@ -196,7 +186,7 @@
             {% if financial_heatmap_graph %}
               <img src="data:image/png;base64,{{ financial_heatmap_graph }}" 
                    alt="Mapa de Calor da Atividade Financeira" 
-                   class="w-full h-auto max-h-[380px] object-contain">
+                   class="w-full h-auto max-h-[380px] object-contain chart-image">
             {% else %}
               <div class="text-center text-base-content/50">
                 <i data-lucide="image" class="w-20 h-20 mx-auto mb-4 opacity-30"></i>
@@ -228,11 +218,11 @@
   </div>
   {% endif %}
 
-</div>
-
 <style>
   .graph-container {
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
   }
   
   .graph-container:hover {
@@ -240,14 +230,62 @@
     box-shadow: 0 8px 25px rgba(0,0,0,0.1);
   }
   
+  .graph-container img {
+    transition: all 0.3s ease;
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+  
+  .graph-container img:hover {
+    transform: scale(1.02);
+    filter: brightness(1.05);
+  }
+  
   .card:hover {
     transform: translateY(-4px);
     transition: transform 0.2s ease;
   }
   
+  /* Click indicator overlay */
+  .graph-container::after {
+    content: "🔍 Clique para expandir";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  
+  .graph-container:hover::after {
+    transform: translateY(0);
+  }
+  
+  /* Ensure placeholder areas are also clickable */
+  .graph-container .text-center {
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .graph-container .text-center:hover {
+    background: rgba(0,0,0,0.05);
+    border-radius: 0.5rem;
+  }
+  
   @media (max-width: 768px) {
     .grid {
       grid-template-columns: 1fr;
+    }
+    
+    .graph-container::after {
+      font-size: 0.75rem;
+      padding: 0.5rem;
     }
   }
 </style>

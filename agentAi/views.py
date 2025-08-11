@@ -1,5 +1,6 @@
 import json
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -111,7 +112,33 @@ def get_response(request):
             for x in Incomes.objects.filter(user=request.user)
         ]
         total = {"expenses": expenses, "incomes": incomes}
-        df_information = "The data amount are in Cents Reais BRL, from cents to reais should be 123456 cents == R$ 1.234,56. Always uses Reais BRL. For stores comparisons, always use Brazilian Stores Site, to get the price and details. Always check if the site is trustworthy"
+        df_information = """The data amount are in Cents Reais BRL, from cents to reais should be 123456 cents == R$ 1.234,56. Always uses Reais BRL. For stores comparisons, always use Brazilian Stores Site, to get the price and details. Always check if the site is trustworthy
+        Your text has to be writen using html template. 
+        You're allow to use:
+        
+        <p> - plain text
+        <b> - Bold text
+        <strong> - Important text
+        <i> - Italic text
+        <em> - Emphasized text
+        <mark> - Marked text
+        <small> - Smaller text
+        <del> - Deleted text
+        <ins> - Inserted text
+        <sub> - Subscript text
+        <sup> - Superscript text
+        <a> - For links and redirects
+        <code> For coding text
+        <blockquote> For quotes
+        <li> and <ul> For list
+        
+        
+        and your text should start with an <div> and end with a </div> tag
+        don't put a text without a string tag
+        
+        if the user ask to close or stop the conversation, your response should be:
+        <div><strong>Conversation closed</strong></div>
+        """
 
         # Include conversation history in prompt
         conversation_context = (
@@ -129,6 +156,10 @@ def get_response(request):
         Message.objects.create(
             conversation=conversation, sender="ai", content=ai_response.text
         )
+
+        if ai_response.text == "<div><strong>Conversation closed</strong></div>":
+            conversation.is_active = False
+            messages.success(request, "Conversation Closed")
 
         # Update conversation timestamp
         conversation.save()  # This will update the updated_at field

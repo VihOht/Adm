@@ -72,12 +72,19 @@
               </a>
             </li>
             <li>
-              <a href="{% url 'statistics' %}" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
+              <a href="{% url 'finance_statistics:dashboard' %}" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
                 <i data-lucide="pie-chart" class="w-4 h-4 mr-2"></i>
                 Relatórios
               </a>
             </li>
           </ul>
+        </li>
+        <!-- Página Principal -->
+        <li>
+          <a href="#" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group">
+            <i data-lucide="landmark" class="w-5 h-5 mr-3 text-base-content/70 group-hover:text-primary"></i>
+            <span class="font-medium">Dividas e Investimentos...</span>
+          </a>
         </li>
       </ul>
     </nav>

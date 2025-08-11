@@ -134,7 +134,7 @@
         </div>
         
         <div class="card-actions justify-end mt-4">
-          <button class="btn btn-outline">Ver Todos os Gastos</button>
+          <a href="{% url 'finance_manager:transactions' %}#expenses" class="btn btn-outline">Ver Todos os Gastos</a>
         </div>
       </div>
     </div>
@@ -187,7 +187,7 @@
         </div>
         
         <div class="card-actions justify-end mt-4">
-          <button class="btn btn-outline">Ver Todas as Receitas</button>
+          <a href="{% url 'finance_manager:transactions' %}#incomes" class="btn btn-outline">Ver Todas as Receitas</a>
         </div>
       </div>
     </div>

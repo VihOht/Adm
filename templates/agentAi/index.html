@@ -16,7 +16,11 @@
                     {% for message in messages %}
                         <div class="chat {% if message.sender == 'user' %}chat-end{% else %}chat-start{% endif %}">
                             <div class="chat-bubble {% if message.sender == 'user' %}chat-bubble-secondary{% else %}chat-bubble-primary{% endif %}">
-                                {{ message.content }}
+                                {% if message.sender == 'ai' %}
+                                    {{ message.content|safe }}
+                                {% else %}
+                                    {{ message.content }}
+                                {% endif %}
                             </div>
                         </div>
                     {% endfor %}

@@ -11,6 +11,11 @@ function checkConversationExpiry() {
         clearInterval(conversationExpiryInterval);
         return;
     }
+    const chat = document.getElementById('floating-chat-messages');
+
+    if (chat.childElementCount < 2){
+        updateLastActivity()
+    }
     
     // Reload page if conversation has been inactive for too long
     // This will trigger a new conversation to be created on the backend
@@ -28,6 +33,7 @@ function checkConversationExpiry() {
             }, 2000);
         }
     }
+    chat
 }
 
 function updateLastActivity() {
@@ -68,8 +74,13 @@ function addMessage(message, sender) {
     
     const bubbleDiv = document.createElement('div');
     bubbleDiv.className = sender === 'user' ? 'chat-bubble chat-bubble-secondary' : 'chat-bubble chat-bubble-primary';
-    bubbleDiv.textContent = message;
     
+    // Use innerHTML for AI responses to render HTML, textContent for user messages for security
+    if (sender === 'ai') {
+        bubbleDiv.innerHTML = message;
+    } else {
+        bubbleDiv.textContent = message;
+    }
     
     messageDiv.appendChild(bubbleDiv);
     chatContainer.appendChild(messageDiv);
@@ -329,7 +340,13 @@ function addFloatingMessage(message, sender, shouldScroll = true) {
     
     const bubbleDiv = document.createElement('div');
     bubbleDiv.className = sender === 'user' ? 'chat-bubble chat-bubble-secondary' : 'chat-bubble chat-bubble-primary';
-    bubbleDiv.textContent = message;
+    
+    // Use innerHTML for AI responses to render HTML, textContent for user messages for security
+    if (sender === 'ai') {
+        bubbleDiv.innerHTML = message;
+    } else {
+        bubbleDiv.textContent = message;
+    }
     
     messageDiv.appendChild(bubbleDiv);
     chatContainer.appendChild(messageDiv);

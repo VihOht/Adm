@@ -58,12 +58,14 @@ class FinanceGraphGenerator:
         # Group by category and sum amounts
         category_totals = merged.groupby("name")["amount"].sum()
 
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, (ax, ax_legend) = plt.subplots(
+            1, 2, figsize=(16, 8), gridspec_kw={"width_ratios": [3, 1]}
+        )
         colors = plt.cm.Set3(range(len(category_totals)))
 
         wedges, texts, autotexts = ax.pie(
             category_totals.values,
-            labels=category_totals.index,
+            labels=None,  # Remove labels from pie chart
             autopct="%1.1f%%",
             colors=colors,
             startangle=90,
@@ -73,8 +75,86 @@ class FinanceGraphGenerator:
 
         # Add value labels
         for i, (category, amount) in enumerate(category_totals.items()):
-            autotexts[i].set_text(f"R$ {amount / 100:.2f}\n({autotexts[i].get_text()})")
+            if float(autotexts[i].get_text().replace("%", "")) < 5:
+                autotexts[i].set_text("")
+            else:
+                autotexts[i].set_text(f"{autotexts[i].get_text()}")
 
+        # Create detailed legend on the side
+        ax_legend.axis("off")
+        legend_elements = []
+
+        for i, (category, amount) in enumerate(category_totals.items()):
+            percentage = (amount / category_totals.sum()) * 100
+            legend_elements.append(
+                {
+                    "category": category,
+                    "amount": amount / 100,
+                    "percentage": percentage,
+                    "color": colors[i],
+                }
+            )
+
+        # Sort by amount descending
+        legend_elements.sort(key=lambda x: x["amount"], reverse=True)
+
+        # Add legend title
+        ax_legend.text(
+            0.05,
+            0.95,
+            "Detalhamento das Categorias",
+            fontsize=14,
+            fontweight="bold",
+            transform=ax_legend.transAxes,
+        )
+
+        # Add legend items
+        y_pos = 0.85
+        for item in legend_elements:
+            # Color square
+            ax_legend.add_patch(
+                plt.Rectangle(
+                    (0.05, y_pos - 0.02),
+                    0.03,
+                    0.03,
+                    facecolor=item["color"],
+                    transform=ax_legend.transAxes,
+                )
+            )
+
+            # Category name and values
+            ax_legend.text(
+                0.12,
+                y_pos,
+                f"{item['category']}",
+                fontsize=11,
+                fontweight="bold",
+                transform=ax_legend.transAxes,
+            )
+            ax_legend.text(
+                0.12,
+                y_pos - 0.025,
+                f"R$ {item['amount']:.2f} ({item['percentage']:.1f}%)",
+                fontsize=10,
+                color="gray",
+                transform=ax_legend.transAxes,
+            )
+
+            y_pos -= 0.08
+
+        # Add total
+        total_amount = category_totals.sum() / 100
+        ax_legend.text(
+            0.05,
+            y_pos - 0.02,
+            f"Total Geral: R$ {total_amount:.2f}",
+            fontsize=12,
+            fontweight="bold",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.5),
+            transform=ax_legend.transAxes,
+        )
+
+        plt.tight_layout()
         return self._fig_to_base64(fig)
 
     def generate_monthly_expenses_trend(self):
@@ -88,13 +168,23 @@ class FinanceGraphGenerator:
 
         monthly_totals = expenses_df.groupby("month_year")["amount"].sum()
 
-        fig, ax = plt.subplots(figsize=(12, 6))
+        fig, (ax, ax_legend) = plt.subplots(
+            1, 2, figsize=(16, 8), gridspec_kw={"width_ratios": [3, 1]}
+        )
 
         x_labels = [str(period) for period in monthly_totals.index]
         y_values = monthly_totals.values / 100  # Convert to reais
 
-        ax.plot(x_labels, y_values, marker="o", linewidth=2, markersize=8)
-        ax.fill_between(x_labels, y_values, alpha=0.3)
+        line = ax.plot(
+            x_labels,
+            y_values,
+            marker="o",
+            linewidth=3,
+            markersize=8,
+            color="#e74c3c",
+            label="Gastos Mensais",
+        )
+        ax.fill_between(x_labels, y_values, alpha=0.3, color="#e74c3c")
 
         ax.set_title(
             "Tendência Mensal de Gastos", fontsize=16, fontweight="bold", pad=20
@@ -106,6 +196,59 @@ class FinanceGraphGenerator:
         # Rotate x-axis labels for better readability
         plt.xticks(rotation=45)
 
+        # Create legend
+        ax_legend.axis("off")
+        ax_legend.text(
+            0.05,
+            0.95,
+            "Estatísticas Mensais",
+            fontsize=14,
+            fontweight="bold",
+            transform=ax_legend.transAxes,
+        )
+
+        # Calculate statistics
+        total_months = len(monthly_totals)
+        avg_monthly = y_values.mean()
+        max_month = monthly_totals.idxmax()
+        max_value = y_values.max()
+        min_month = monthly_totals.idxmin()
+        min_value = y_values.min()
+        trend = (
+            "Crescente"
+            if y_values[-1] > y_values[0]
+            else "Decrescente"
+            if y_values[-1] < y_values[0]
+            else "Estável"
+        )
+
+        legend_info = [
+            f"Período analisado: {total_months} meses",
+            f"Média mensal: R$ {avg_monthly:.2f}",
+            f"Maior gasto: R$ {max_value:.2f}",
+            f"({max_month})",
+            f"Menor gasto: R$ {min_value:.2f}",
+            f"({min_month})",
+            f"Tendência: {trend}",
+            f"Total acumulado: R$ {y_values.sum():.2f}",
+        ]
+
+        y_pos = 0.85
+        for info in legend_info:
+            color = "black" if not info.startswith("(") else "gray"
+            fontweight = "bold" if not info.startswith("(") else "normal"
+            ax_legend.text(
+                0.05,
+                y_pos,
+                info,
+                fontsize=10,
+                color=color,
+                fontweight=fontweight,
+                transform=ax_legend.transAxes,
+            )
+            y_pos -= 0.08
+
+        plt.tight_layout()
         return self._fig_to_base64(fig)
 
     def generate_income_vs_expenses(self):
@@ -149,16 +292,15 @@ class FinanceGraphGenerator:
         monthly_expenses = monthly_expenses.reindex(all_months, fill_value=0)
         monthly_incomes = monthly_incomes.reindex(all_months, fill_value=0)
 
-        # Create figure with more space
-        fig, ax = plt.subplots(figsize=(16, 10))
-
-        # Add extra margin at the top for the summary text
-        plt.subplots_adjust(top=0.85, bottom=0.15, left=0.1, right=0.95)
+        # Create figure with legend space
+        fig, (ax, ax_legend) = plt.subplots(
+            1, 2, figsize=(18, 10), gridspec_kw={"width_ratios": [3, 1]}
+        )
 
         # Prepare data for grouped bar chart
         months = [str(month) for month in all_months]
         x_pos = range(len(months))
-        width = 0.35  # Increased width for better visibility
+        width = 0.35
 
         # Create bars
         income_bars = ax.bar(
@@ -188,25 +330,24 @@ class FinanceGraphGenerator:
             max(monthly_expenses) if len(monthly_expenses) > 0 else 0,
         )
 
-        # Add value labels on bars with better positioning
+        # Add value labels on bars
         for bars, values in [
             (income_bars, monthly_incomes.values),
             (expense_bars, monthly_expenses.values),
         ]:
             for bar, value in zip(bars, values):
-                if value > 0:  # Only show label if there's a value
+                if value > 0:
                     ax.text(
                         bar.get_x() + bar.get_width() / 2.0,
-                        value + max_value * 0.02,  # Better spacing from bar top
+                        value + max_value * 0.02,
                         f"R$ {value:.0f}",
                         ha="center",
                         va="bottom",
-                        fontsize=10,
+                        fontsize=9,
                         fontweight="bold",
-                        rotation=0,
                     )
 
-        # Calculate monthly balance and add balance line with better styling
+        # Calculate monthly balance and add balance line
         monthly_balance = monthly_incomes - monthly_expenses
         ax.plot(
             x_pos,
@@ -226,7 +367,7 @@ class FinanceGraphGenerator:
         ax.axhline(y=0, color="black", linestyle="--", alpha=0.5, linewidth=1)
 
         # Set Y-axis limits with padding
-        y_max = max_value * 1.25  # Add 25% padding at top
+        y_max = max_value * 1.25
         y_min = min(monthly_balance.min() if len(monthly_balance) > 0 else 0, 0) * 1.1
         ax.set_ylim(y_min, y_max)
 
@@ -239,40 +380,85 @@ class FinanceGraphGenerator:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(months, rotation=45, ha="right", fontsize=11)
 
-        # Improve legend positioning and styling
         ax.legend(
-            loc="upper left",
-            frameon=True,
-            fancybox=True,
-            shadow=True,
-            fontsize=12,
-            bbox_to_anchor=(0.02, 0.98),
+            loc="upper left", frameon=True, fancybox=True, shadow=True, fontsize=12
         )
         ax.grid(True, alpha=0.3, axis="y", linestyle="-", linewidth=0.5)
 
-        # Add overall summary text at the top with better positioning
+        # Create detailed legend
+        ax_legend.axis("off")
+        ax_legend.text(
+            0.05,
+            0.95,
+            "Resumo Financeiro",
+            fontsize=14,
+            fontweight="bold",
+            transform=ax_legend.transAxes,
+        )
+
+        # Calculate statistics
         total_income = monthly_incomes.sum()
         total_expense = monthly_expenses.sum()
         overall_balance = total_income - total_expense
-        balance_color = "#10b981" if overall_balance >= 0 else "#ef4444"
+        avg_income = monthly_incomes.mean()
+        avg_expense = monthly_expenses.mean()
+        avg_balance = monthly_balance.mean()
 
-        # Place summary text above the plot area
-        fig.text(
-            0.52,
-            0.8,
-            f"Resumo Total: Receitas R$ {total_income:.2f} | Gastos R$ {total_expense:.2f} | Saldo R$ {overall_balance:.2f}",
-            ha="center",
-            fontsize=14,
-            fontweight="bold",
-            bbox=dict(
-                boxstyle="round,pad=0.6",
-                facecolor=balance_color,
-                alpha=0.2,
-                edgecolor=balance_color,
-                linewidth=1,
+        positive_months = (monthly_balance > 0).sum()
+        negative_months = (monthly_balance < 0).sum()
+
+        best_month = monthly_balance.idxmax()
+        best_balance = monthly_balance.max()
+        worst_month = monthly_balance.idxmin()
+        worst_balance = monthly_balance.min()
+
+        legend_info = [
+            ("💰 RECEITAS", "#10b981"),
+            (f"Total: R$ {total_income:.2f}", "black"),
+            (f"Média mensal: R$ {avg_income:.2f}", "gray"),
+            ("", ""),
+            ("💸 GASTOS", "#ef4444"),
+            (f"Total: R$ {total_expense:.2f}", "black"),
+            (f"Média mensal: R$ {avg_expense:.2f}", "gray"),
+            ("", ""),
+            ("📊 SALDO", "#6366f1"),
+            (f"Saldo total: R$ {overall_balance:.2f}", "black"),
+            (f"Saldo médio: R$ {avg_balance:.2f}", "gray"),
+            ("", ""),
+            ("📈 ANÁLISE", "black"),
+            (f"Meses positivos: {positive_months}", "green"),
+            (
+                f"Meses negativos: {negative_months}",
+                "red" if negative_months > 0 else "gray",
             ),
-        )
+            ("", ""),
+            (f"Melhor mês: {best_month}", "green"),
+            (f"R$ {best_balance:.2f}", "gray"),
+            (f"Pior mês: {worst_month}", "red"),
+            (f"R$ {worst_balance:.2f}", "gray"),
+        ]
 
+        y_pos = 0.85
+        for info, color in legend_info:
+            if info == "":
+                y_pos -= 0.02
+                continue
+            fontweight = (
+                "bold" if info.startswith(("💰", "💸", "📊", "📈")) else "normal"
+            )
+            fontsize = 11 if fontweight == "bold" else 10
+            ax_legend.text(
+                0.05,
+                y_pos,
+                info,
+                fontsize=fontsize,
+                color=color,
+                fontweight=fontweight,
+                transform=ax_legend.transAxes,
+            )
+            y_pos -= 0.05
+
+        plt.tight_layout()
         return self._fig_to_base64(fig)
 
     def generate_income_by_category(self):
@@ -304,13 +490,15 @@ class FinanceGraphGenerator:
         if category_totals.empty:
             return None
 
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, (ax, ax_legend) = plt.subplots(
+            1, 2, figsize=(16, 8), gridspec_kw={"width_ratios": [3, 1]}
+        )
         colors = plt.cm.Set2(range(len(category_totals)))
 
         # Create donut chart
         wedges, texts, autotexts = ax.pie(
             category_totals.values,
-            labels=category_totals.index,
+            labels=None,  # Remove labels from chart
             autopct="%1.1f%%",
             colors=colors,
             startangle=90,
@@ -323,10 +511,99 @@ class FinanceGraphGenerator:
 
         ax.set_title("Receitas por Categoria", fontsize=16, fontweight="bold", pad=20)
 
-        # Add value labels
+        # Add value labels only for significant percentages
         for i, (category, amount) in enumerate(category_totals.items()):
-            autotexts[i].set_text(f"R$ {amount / 100:.0f}\n({autotexts[i].get_text()})")
+            if float(autotexts[i].get_text().replace("%", "")) >= 5:
+                autotexts[i].set_text(f"{autotexts[i].get_text()}")
+            else:
+                autotexts[i].set_text("")
 
+        # Create detailed legend
+        ax_legend.axis("off")
+        legend_elements = []
+
+        for i, (category, amount) in enumerate(category_totals.items()):
+            percentage = (amount / category_totals.sum()) * 100
+            legend_elements.append(
+                {
+                    "category": category,
+                    "amount": amount / 100,
+                    "percentage": percentage,
+                    "color": colors[i],
+                }
+            )
+
+        # Sort by amount descending
+        legend_elements.sort(key=lambda x: x["amount"], reverse=True)
+
+        # Add legend title
+        ax_legend.text(
+            0.05,
+            0.95,
+            "Detalhamento das Receitas",
+            fontsize=14,
+            fontweight="bold",
+            transform=ax_legend.transAxes,
+        )
+
+        # Add legend items
+        y_pos = 0.85
+        for item in legend_elements:
+            # Color square
+            ax_legend.add_patch(
+                plt.Rectangle(
+                    (0.05, y_pos - 0.02),
+                    0.03,
+                    0.03,
+                    facecolor=item["color"],
+                    transform=ax_legend.transAxes,
+                )
+            )
+
+            # Category name and values
+            ax_legend.text(
+                0.12,
+                y_pos,
+                f"{item['category']}",
+                fontsize=11,
+                fontweight="bold",
+                transform=ax_legend.transAxes,
+            )
+            ax_legend.text(
+                0.12,
+                y_pos - 0.025,
+                f"R$ {item['amount']:.2f} ({item['percentage']:.1f}%)",
+                fontsize=10,
+                color="gray",
+                transform=ax_legend.transAxes,
+            )
+
+            y_pos -= 0.08
+
+        # Add total and statistics
+        total_amount = category_totals.sum() / 100
+        ax_legend.text(
+            0.05,
+            y_pos - 0.02,
+            f"Total Geral: R$ {total_amount:.2f}",
+            fontsize=12,
+            fontweight="bold",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgreen", alpha=0.5),
+            transform=ax_legend.transAxes,
+        )
+
+        y_pos -= 0.08
+        avg_per_category = total_amount / len(category_totals)
+        ax_legend.text(
+            0.05,
+            y_pos,
+            f"Média por categoria: R$ {avg_per_category:.2f}",
+            fontsize=10,
+            color="gray",
+            transform=ax_legend.transAxes,
+        )
+
+        plt.tight_layout()
         return self._fig_to_base64(fig)
 
     def generate_daily_spending_pattern(self):
@@ -336,39 +613,112 @@ class FinanceGraphGenerator:
 
         expenses_df = self.dataframes["expenses"].copy()
         expenses_df["spent_at"] = pd.to_datetime(expenses_df["spent_at"])
-
-        # Extract only the date part (remove time)
         expenses_df["date_only"] = expenses_df["spent_at"].dt.date
 
-        # Group by date only and sum amounts
         daily_totals = expenses_df.groupby("date_only")["amount"].sum()
 
-        fig, ax = plt.subplots(figsize=(16, 8))
+        fig, (ax, ax_legend) = plt.subplots(
+            1, 2, figsize=(18, 8), gridspec_kw={"width_ratios": [3, 1]}
+        )
 
-        # Convert dates back to datetime for plotting but keep only date part
         dates = pd.to_datetime(daily_totals.index)
         values = daily_totals.values / 100
 
-        ax.plot(dates, values, marker="o", linewidth=2, markersize=6, alpha=0.8)
-        ax.fill_between(dates, values, alpha=0.3)
+        ax.plot(
+            dates,
+            values,
+            marker="o",
+            linewidth=2,
+            markersize=6,
+            alpha=0.8,
+            color="#e74c3c",
+            label="Gastos Diários",
+        )
+        ax.fill_between(dates, values, alpha=0.3, color="#e74c3c")
 
         ax.set_title("Padrão de Gastos Diários", fontsize=16, fontweight="bold", pad=20)
         ax.set_xlabel("Data", fontsize=12)
         ax.set_ylabel("Valor (R$)", fontsize=12)
         ax.grid(True, alpha=0.3)
 
-        # Format x-axis to show only dates
         import matplotlib.dates as mdates
 
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m/%Y"))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m"))
 
-        # Rotate x-axis labels for better readability
+        # Adjust date locator based on data range
+        date_range = (dates.max() - dates.min()).days
+        if date_range <= 30:
+            ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))
+        elif date_range <= 90:
+            ax.xaxis.set_major_locator(mdates.WeekdayLocator())
+        else:
+            ax.xaxis.set_major_locator(mdates.MonthLocator())
+
         plt.xticks(rotation=45)
 
-        # Ensure tight layout to prevent label cutoff
-        plt.tight_layout()
+        # Create legend with statistics
+        ax_legend.axis("off")
+        ax_legend.text(
+            0.05,
+            0.95,
+            "Estatísticas Diárias",
+            fontsize=14,
+            fontweight="bold",
+            transform=ax_legend.transAxes,
+        )
 
+        # Calculate statistics
+        total_days = len(daily_totals)
+        total_amount = values.sum()
+        avg_daily = values.mean()
+        max_day = daily_totals.idxmax()
+        max_value = values.max()
+        min_day = daily_totals.idxmin()
+        min_value = values.min()
+
+        # Weekday analysis
+        expenses_df["weekday"] = expenses_df["spent_at"].dt.day_name()
+        weekday_avg = expenses_df.groupby("weekday")["amount"].mean() / 100
+        highest_weekday = weekday_avg.idxmax()
+        lowest_weekday = weekday_avg.idxmin()
+
+        legend_info = [
+            f"Período: {total_days} dias",
+            f"Total gasto: R$ {total_amount:.2f}",
+            f"Média diária: R$ {avg_daily:.2f}",
+            "",
+            f"Maior gasto: R$ {max_value:.2f}",
+            f"({max_day.strftime('%d/%m/%Y')})",
+            f"Menor gasto: R$ {min_value:.2f}",
+            f"({min_day.strftime('%d/%m/%Y')})",
+            "",
+            "📅 Análise por dia da semana:",
+            f"Dia com mais gastos: {highest_weekday}",
+            f"R$ {weekday_avg[highest_weekday]:.2f} (média)",
+            f"Dia com menos gastos: {lowest_weekday}",
+            f"R$ {weekday_avg[lowest_weekday]:.2f} (média)",
+        ]
+
+        y_pos = 0.85
+        for info in legend_info:
+            if info == "":
+                y_pos -= 0.03
+                continue
+            color = "black" if not info.startswith("(") else "gray"
+            fontweight = "bold" if info.startswith("📅") else "normal"
+            fontsize = 11 if fontweight == "bold" else 10
+            ax_legend.text(
+                0.05,
+                y_pos,
+                info,
+                fontsize=fontsize,
+                color=color,
+                fontweight=fontweight,
+                transform=ax_legend.transAxes,
+            )
+            y_pos -= 0.06
+
+        plt.tight_layout()
         return self._fig_to_base64(fig)
 
     def generate_financial_heatmap(self):
@@ -413,16 +763,19 @@ class FinanceGraphGenerator:
         if heatmap_data.empty:
             return None
 
-        fig, ax = plt.subplots(figsize=(12, 8))
+        fig, (ax, ax_legend) = plt.subplots(
+            1, 2, figsize=(16, 10), gridspec_kw={"width_ratios": [3, 1]}
+        )
 
         # Create heatmap
         sns.heatmap(
             heatmap_data,
             annot=True,
-            fmt=".2f",
+            fmt=".0f",
             cmap="RdYlBu_r",
             ax=ax,
             cbar_kws={"label": "Valor (R$)"},
+            linewidths=0.5,
         )
 
         ax.set_title(
@@ -434,6 +787,86 @@ class FinanceGraphGenerator:
         ax.set_xlabel("Tipo de Transação", fontsize=12)
         ax.set_ylabel("Semana do Ano", fontsize=12)
 
+        # Create legend with analysis
+        ax_legend.axis("off")
+        ax_legend.text(
+            0.05,
+            0.95,
+            "Análise do Mapa de Calor",
+            fontsize=14,
+            fontweight="bold",
+            transform=ax_legend.transAxes,
+        )
+
+        # Calculate statistics for legend
+        weeks_analyzed = len(heatmap_data.index)
+
+        if "Gastos" in heatmap_data.columns:
+            total_expenses = heatmap_data["Gastos"].sum()
+            avg_weekly_expenses = heatmap_data["Gastos"].mean()
+            max_expense_week = heatmap_data["Gastos"].idxmax()
+        else:
+            total_expenses = avg_weekly_expenses = max_expense_week = 0
+
+        if "Receitas" in heatmap_data.columns:
+            total_incomes = heatmap_data["Receitas"].sum()
+            avg_weekly_incomes = heatmap_data["Receitas"].mean()
+            max_income_week = heatmap_data["Receitas"].idxmax()
+        else:
+            total_incomes = avg_weekly_incomes = max_income_week = 0
+
+        legend_info = [
+            f"📊 Semanas analisadas: {weeks_analyzed}",
+            "",
+            "💸 GASTOS SEMANAIS:",
+            f"Total: R$ {total_expenses:.2f}",
+            f"Média: R$ {avg_weekly_expenses:.2f}",
+            f"Pico: Semana {max_expense_week}" if max_expense_week else "Sem dados",
+            "",
+            "💰 RECEITAS SEMANAIS:",
+            f"Total: R$ {total_incomes:.2f}",
+            f"Média: R$ {avg_weekly_incomes:.2f}",
+            f"Pico: Semana {max_income_week}" if max_income_week else "Sem dados",
+            "",
+            "🎯 INTERPRETAÇÃO:",
+            "• Cores mais quentes = maior atividade",
+            "• Cores mais frias = menor atividade",
+            "• Branco = sem movimentação",
+            "",
+            "📈 PADRÕES:",
+            "• Identifique semanas com alta atividade",
+            "• Compare receitas vs gastos por período",
+            "• Visualize tendências temporais",
+        ]
+
+        y_pos = 0.85
+        for info in legend_info:
+            if info == "":
+                y_pos -= 0.025
+                continue
+            color = "black"
+            fontweight = "normal"
+            fontsize = 10
+
+            if info.startswith(("📊", "💸", "💰", "🎯", "📈")):
+                fontweight = "bold"
+                fontsize = 11
+            elif info.startswith("•"):
+                color = "gray"
+                fontsize = 9
+
+            ax_legend.text(
+                0.05,
+                y_pos,
+                info,
+                fontsize=fontsize,
+                color=color,
+                fontweight=fontweight,
+                transform=ax_legend.transAxes,
+            )
+            y_pos -= 0.04
+
+        plt.tight_layout()
         return self._fig_to_base64(fig)
 
 

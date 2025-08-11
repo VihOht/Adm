@@ -24,6 +24,76 @@
     background: #555;
 }
 
+/* AI Response HTML Content Styling */
+.chat-bubble-primary h1, .chat-bubble-primary h2, .chat-bubble-primary h3,
+.chat-bubble-primary h4, .chat-bubble-primary h5, .chat-bubble-primary h6 {
+    margin: 0.5em 0;
+    font-weight: bold;
+}
+
+.chat-bubble-primary h1 { font-size: 1.2em; }
+.chat-bubble-primary h2 { font-size: 1.1em; }
+.chat-bubble-primary h3 { font-size: 1.05em; }
+
+.chat-bubble-primary p {
+    margin: 0.5em 0;
+    line-height: 1.4;
+}
+
+.chat-bubble-primary ul, .chat-bubble-primary ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+}
+
+.chat-bubble-primary li {
+    margin: 0.2em 0;
+}
+
+.chat-bubble-primary strong, .chat-bubble-primary b {
+    font-weight: bold;
+}
+
+.chat-bubble-primary em, .chat-bubble-primary i {
+    font-style: italic;
+}
+
+.chat-bubble-primary code {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.chat-bubble-primary pre {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.5em;
+    border-radius: 5px;
+    overflow-x: auto;
+    margin: 0.5em 0;
+}
+
+.chat-bubble-primary pre code {
+    background: none;
+    padding: 0;
+}
+
+.chat-bubble-primary blockquote {
+    border-left: 3px solid rgba(255, 255, 255, 0.3);
+    margin: 0.5em 0;
+    padding-left: 1em;
+    font-style: italic;
+}
+
+.chat-bubble-primary a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: underline;
+}
+
+.chat-bubble-primary a:hover {
+    color: white;
+}
+
 .typing-indicator {
     display: none;
     align-items: center;
@@ -164,4 +234,82 @@
 
 .floating-chat-send-btn:hover {
     opacity: 0.9;
+}
+
+/* Floating Chat AI Response HTML Content Styling */
+.floating-chat-messages .chat-bubble-primary h1, 
+.floating-chat-messages .chat-bubble-primary h2, 
+.floating-chat-messages .chat-bubble-primary h3,
+.floating-chat-messages .chat-bubble-primary h4, 
+.floating-chat-messages .chat-bubble-primary h5, 
+.floating-chat-messages .chat-bubble-primary h6 {
+    margin: 0.5em 0;
+    font-weight: bold;
+}
+
+.floating-chat-messages .chat-bubble-primary h1 { font-size: 1.1em; }
+.floating-chat-messages .chat-bubble-primary h2 { font-size: 1.05em; }
+.floating-chat-messages .chat-bubble-primary h3 { font-size: 1.02em; }
+
+.floating-chat-messages .chat-bubble-primary p {
+    margin: 0.4em 0;
+    line-height: 1.4;
+}
+
+.floating-chat-messages .chat-bubble-primary ul, 
+.floating-chat-messages .chat-bubble-primary ol {
+    margin: 0.4em 0;
+    padding-left: 1.2em;
+}
+
+.floating-chat-messages .chat-bubble-primary li {
+    margin: 0.1em 0;
+}
+
+.floating-chat-messages .chat-bubble-primary strong, 
+.floating-chat-messages .chat-bubble-primary b {
+    font-weight: bold;
+}
+
+.floating-chat-messages .chat-bubble-primary em, 
+.floating-chat-messages .chat-bubble-primary i {
+    font-style: italic;
+}
+
+.floating-chat-messages .chat-bubble-primary code {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.1em 0.2em;
+    border-radius: 2px;
+    font-family: monospace;
+    font-size: 0.85em;
+}
+
+.floating-chat-messages .chat-bubble-primary pre {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.4em;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0.4em 0;
+    font-size: 0.85em;
+}
+
+.floating-chat-messages .chat-bubble-primary pre code {
+    background: none;
+    padding: 0;
+}
+
+.floating-chat-messages .chat-bubble-primary blockquote {
+    border-left: 2px solid rgba(255, 255, 255, 0.3);
+    margin: 0.4em 0;
+    padding-left: 0.8em;
+    font-style: italic;
+}
+
+.floating-chat-messages .chat-bubble-primary a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: underline;
+}
+
+.floating-chat-messages .chat-bubble-primary a:hover {
+    color: white;
 }

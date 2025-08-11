@@ -1,0 +1,514 @@
+{% extends 'finance_manager/base.html' %}
+{% load static %}
+
+{% block finance_head %}
+<script>
+    // Set "Transações" as active page
+  window.addEventListener("load", function() {
+    un_l = document.getElementById("s_items")
+    actual = un_l.children[1]
+    actual.children[0].classList.add("bg-primary", "text-primary-content")
+    sub_actual = actual.children[1]
+    sub_actual.children[0].children[0].classList.add("bg-secondary", "text-secondary-content")
+  })
+</script>
+{% endblock %}
+
+{% block finance_content %}
+<div class="max-w-7xl mx-auto">
+  <!-- Page Header -->
+  <div class="mb-8 flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-base-content mb-2">
+        <i data-lucide="calendar" class="w-8 h-8 inline-block mr-3"></i>
+        Calendário de Transações
+      </h1>
+      <p class="text-base-content/70">Visualize suas transações por dia do mês</p>
+    </div>
+    <div class="flex gap-4">
+      <!-- Month Navigation -->
+      <div class="flex items-center gap-4">
+        <a href="?year={{ prev_year }}&month={{ prev_month }}" 
+          class="btn btn-circle btn-outline btn-sm">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </a>
+        
+        <div class="text-center">
+          <h2 class="text-xl font-semibold">{{ calendar_data.month_name }} {{ calendar_data.year }}</h2>
+        </div>
+        
+        <a href="?year={{ next_year }}&month={{ next_month }}" 
+          class="btn btn-circle btn-outline btn-sm">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+      <strong>|</strong>
+      <div class="flex gap-2">
+        <a href="{% url 'finance_manager:transactions' %}" 
+          class="btn btn-outline btn-sm {% if request.resolver_match.url_name == 'dashboard' %}btn-active{% endif %}">
+          <i data-lucide="bar-chart-3" class="w-4 h-4 mr-2"></i>
+          Tabelas
+        </a>
+        <a href="{% url 'finance_statistics:calendar' %}" 
+          class="btn btn-outline btn-sm {% if request.resolver_match.url_name == 'calendar' %}btn-active{% endif %}">
+          <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
+          Calendário
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Month Statistics -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-error">
+        <i data-lucide="trending-down" class="w-6 h-6"></i>
+      </div>
+      <div class="stat-title">Gastos do Mês</div>
+      <div class="stat-value text-sm text-error">R$ {{ calendar_data.statistics.total_expenses|floatformat:2 }}</div>
+      <div class="stat-desc">{{ calendar_data.statistics.days_with_expenses }} dias com gastos</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-success">
+        <i data-lucide="trending-up" class="w-6 h-6"></i>
+      </div>
+      <div class="stat-title">Receitas do Mês</div>
+      <div class="stat-value text-sm text-success">R$ {{ calendar_data.statistics.total_incomes|floatformat:2 }}</div>
+      <div class="stat-desc">{{ calendar_data.statistics.days_with_incomes }} dias com receitas</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-info">
+        <i data-lucide="activity" class="w-6 h-6"></i>
+      </div>
+      <div class="stat-title">Saldo do Mês</div>
+      <div class="stat-value text-sm {% if calendar_data.statistics.total_balance >= 0 %}text-success{% else %}text-error{% endif %}">
+        R$ {{ calendar_data.statistics.total_balance|floatformat:2 }}
+      </div>
+      <div class="stat-desc">{{ calendar_data.statistics.days_with_activity }} dias ativos</div>
+    </div>
+    
+    <div class="stat bg-base-100 rounded-lg shadow">
+      <div class="stat-figure text-primary">
+        <i data-lucide="list" class="w-6 h-6"></i>
+      </div>
+      <div class="stat-title">Transações</div>
+      <div class="stat-value text-sm text-primary">{{ calendar_data.statistics.total_transactions }}</div>
+      <div class="stat-desc">Total no mês</div>
+    </div>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="card bg-base-100 shadow-lg">
+    <div class="card-body">
+      <div class="calendar-container">
+        <!-- Calendar Header -->
+        <div class="calendar-header grid grid-cols-7 gap-2 mb-4">
+          <div class="calendar-day-header text-center font-semibold text-base-content/70 p-2">Dom</div>
+          <div class="calendar-day-header text-center font-semibold text-base-content/70 p-2">Seg</div>
+          <div class="calendar-day-header text-center font-semibold text-base-content/70 p-2">Ter</div>
+          <div class="calendar-day-header text-center font-semibold text-base-content/70 p-2">Qua</div>
+          <div class="calendar-day-header text-center font-semibold text-base-content/70 p-2">Qui</div>
+          <div class="calendar-day-header text-center font-semibold text-base-content/70 p-2">Sex</div>
+          <div class="calendar-day-header text-center font-semibold text-base-content/70 p-2">Sáb</div>
+        </div>
+        
+        <!-- Calendar Body -->
+        <div class="calendar-body">
+          {% for week in calendar_data.calendar %}
+          <div class="calendar-week grid grid-cols-7 gap-2 mb-2">
+            {% for day in week %}
+            <div class="calendar-day {% if day.is_empty %}calendar-day-empty{% else %}calendar-day-active{% endif %} 
+                        {% if day.transaction_count > 0 %}has-transactions{% endif %}
+                        {% if day.balance > 0 %}positive-balance{% elif day.balance < 0 %}negative-balance{% endif %}"
+                 {% if not day.is_empty %}
+                 data-date="{{ day.date }}"
+                 data-transactions="{{ day.transaction_count }}"
+                 data-expenses="{{ day.expenses|floatformat:2 }}"
+                 data-incomes="{{ day.incomes|floatformat:2 }}"
+                 data-balance="{{ day.balance|floatformat:2 }}"
+                 {% endif %}>
+              
+              {% if not day.is_empty %}
+                <div class="day-number">{{ day.day }}</div>
+                {% if day.transaction_count > 0 %}
+                  <div class="transaction-indicators">
+                    {% if day.expenses > 0 %}
+                      <div class="expense-indicator" title="Gastos: R$ {{ day.expenses|floatformat:2 }}">
+                        <i data-lucide="arrow-down" class="w-3 h-3"></i>
+                      </div>
+                    {% endif %}
+                    {% if day.incomes > 0 %}
+                      <div class="income-indicator" title="Receitas: R$ {{ day.incomes|floatformat:2 }}">
+                        <i data-lucide="arrow-up" class="w-3 h-3"></i>
+                      </div>
+                    {% endif %}
+                    <div class="transaction-count">{{ day.transaction_count }}</div>
+                  </div>
+                {% endif %}
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="card bg-base-100 shadow-lg mt-6">
+    <div class="card-body">
+      <h3 class="card-title text-lg mb-4">
+        <i data-lucide="info" class="w-5 h-5 mr-2"></i>
+        Legenda
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-success/20 border-2 border-success rounded"></div>
+          <span class="text-sm">Saldo positivo do dia</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-error/20 border-2 border-error rounded"></div>
+          <span class="text-sm">Saldo negativo do dia</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-base-300 rounded"></div>
+          <span class="text-sm">Sem transações</span>
+        </div>
+      </div>
+      <div class="mt-4 text-sm text-base-content/70">
+        <p><strong>💡 Dica:</strong> Passe o mouse sobre os dias para ver estatísticas rápidas, ou clique para ver as transações detalhadas.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Day Details Modal -->
+<div id="day-modal" class="modal">
+  <div class="modal-box max-w-4xl">
+    <h3 class="font-bold text-lg mb-4" id="modal-title">Transações do Dia</h3>
+    
+    <!-- Day Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" id="modal-stats">
+      <!-- Stats will be populated by JavaScript -->
+    </div>
+    
+    <!-- Transactions List -->
+    <div class="divider">Transações</div>
+    <div id="modal-transactions" class="space-y-2 max-h-96 overflow-y-auto">
+      <!-- Transactions will be populated by JavaScript -->
+    </div>
+    
+    <div class="modal-action">
+      <button class="btn" onclick="closeDayModal()">Fechar</button>
+    </div>
+  </div>
+  <div class="modal-backdrop" onclick="closeDayModal()"></div>
+</div>
+
+<style>
+  .calendar-container {
+    font-size: 0.875rem;
+  }
+  
+  .calendar-day {
+    min-height: 80px;
+    border: 2px solid transparent;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background: white;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .calendar-day-empty {
+    background: transparent;
+    cursor: default;
+  }
+  
+  .calendar-day-active:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  
+  .calendar-day.has-transactions {
+    border-color: #e5e7eb;
+  }
+  
+  .calendar-day.positive-balance {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-color: #22c55e;
+  }
+  
+  .calendar-day.negative-balance {
+    background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+    border-color: #ef4444;
+  }
+  
+  .day-number {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #374151;
+    margin-bottom: 0.25rem;
+  }
+  
+  .transaction-indicators {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-end;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+  
+  .expense-indicator {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 0.125rem;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+  }
+  
+  .income-indicator {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+    padding: 0.125rem;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+  }
+  
+  .transaction-count {
+    background: #3b82f6;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.75rem;
+    min-width: 1.25rem;
+    text-align: center;
+    margin-top: 0.25rem;
+  }
+  
+  .tooltip {
+    position: relative;
+  }
+  
+  .tooltip-content {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  
+  .tooltip:hover .tooltip-content {
+    opacity: 1;
+  }
+  
+  @media (max-width: 768px) {
+    .calendar-day {
+      min-height: 60px;
+      padding: 0.25rem;
+    }
+    
+    .day-number {
+      font-size: 0.875rem;
+    }
+    
+    .transaction-count {
+      font-size: 0.625rem;
+      padding: 0.0625rem 0.25rem;
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCalendar();
+});
+
+function initializeCalendar() {
+    const calendarDays = document.querySelectorAll('.calendar-day-active');
+    
+    calendarDays.forEach(day => {
+        // Add hover tooltip
+        day.addEventListener('mouseenter', showTooltip);
+        day.addEventListener('mouseleave', hideTooltip);
+        
+        // Add click handler
+        day.addEventListener('click', showDayDetails);
+    });
+}
+
+function showTooltip(event) {
+    const day = event.currentTarget;
+    const transactions = day.dataset.transactions;
+    const expenses = day.dataset.expenses;
+    const incomes = day.dataset.incomes;
+    const balance = day.dataset.balance;
+    
+    if (transactions === '0') return;
+    
+    // Create tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip-content';
+    tooltip.innerHTML = `
+        <div class="text-xs">
+            <div>📊 ${transactions} transação${transactions > 1 ? 'ões' : ''}</div>
+            <div class="text-red-300">💸 Gastos: R$ ${expenses}</div>
+            <div class="text-green-300">💰 Receitas: R$ ${incomes}</div>
+            <div class="text-blue-300">📈 Saldo: R$ ${balance}</div>
+            <div class="mt-1 text-gray-300">Clique para detalhes</div>
+        </div>
+    `;
+    
+    day.appendChild(tooltip);
+    day.classList.add('tooltip');
+    
+    // Show tooltip
+    setTimeout(() => {
+        tooltip.style.opacity = '1';
+    }, 100);
+}
+
+function hideTooltip(event) {
+    const day = event.currentTarget;
+    const tooltip = day.querySelector('.tooltip-content');
+    if (tooltip) {
+        tooltip.remove();
+        day.classList.remove('tooltip');
+    }
+}
+
+function showDayDetails(event) {
+    const day = event.currentTarget;
+    const date = day.dataset.date;
+    const transactions = day.dataset.transactions;
+    
+    if (transactions === '0') return;
+    
+    // Show loading state
+    document.getElementById('modal-title').textContent = 'Carregando...';
+    document.getElementById('modal-stats').innerHTML = '<div class="loading loading-spinner"></div>';
+    document.getElementById('modal-transactions').innerHTML = '<div class="loading loading-spinner"></div>';
+    
+    // Show modal
+    document.getElementById('day-modal').classList.add('modal-open');
+    
+    // Fetch day details
+    fetch(`/finance/statistics/ajax/day-transactions/?date=${date}`)
+        .then(response => response.json())
+        .then(data => {
+            populateDayModal(data);
+        })
+        .catch(error => {
+            console.error('Error fetching day details:', error);
+            document.getElementById('modal-title').textContent = 'Erro ao carregar dados';
+            document.getElementById('modal-stats').innerHTML = '<div class="text-error">Erro ao carregar estatísticas</div>';
+            document.getElementById('modal-transactions').innerHTML = '<div class="text-error">Erro ao carregar transações</div>';
+        });
+}
+
+function populateDayModal(data) {
+    const date = new Date(data.date);
+    const formattedDate = date.toLocaleDateString('pt-BR', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    // Update title
+    document.getElementById('modal-title').textContent = `Transações de ${formattedDate}`;
+    
+    // Update statistics
+    const stats = data.statistics;
+    document.getElementById('modal-stats').innerHTML = `
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-title text-xs">Transações</div>
+            <div class="stat-value text-lg">${stats.total_transactions}</div>
+        </div>
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-title text-xs">Gastos</div>
+            <div class="stat-value text-lg text-error">R$ ${stats.total_expenses.toFixed(2)}</div>
+        </div>
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-title text-xs">Receitas</div>
+            <div class="stat-value text-lg text-success">R$ ${stats.total_incomes.toFixed(2)}</div>
+        </div>
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-title text-xs">Saldo</div>
+            <div class="stat-value text-lg ${stats.balance >= 0 ? 'text-success' : 'text-error'}">
+                R$ ${stats.balance.toFixed(2)}
+            </div>
+        </div>
+    `;
+    
+    // Update transactions
+    let transactionsHtml = '';
+    if (data.transactions.length === 0) {
+        transactionsHtml = '<div class="text-center text-base-content/50">Nenhuma transação encontrada</div>';
+    } else {
+        data.transactions.forEach(transaction => {
+            const isExpense = transaction.type === 'expense';
+            const iconClass = isExpense ? 'trending-down' : 'trending-up';
+            const amountClass = isExpense ? 'text-error' : 'text-success';
+            const bgClass = isExpense ? 'bg-error/10' : 'bg-success/10';
+            
+            transactionsHtml += `
+                <div class="card ${bgClass} border-l-4 ${isExpense ? 'border-error' : 'border-success'}">
+                    <div class="card-body py-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="placeholder">
+                                    <div class="w-10 h-10 rounded-full ${isExpense ? 'bg-error text-error-content' : 'bg-success text-success-content'} flex items-center justify-center">
+                                        <i data-lucide="${iconClass}" class="w-5 h-5"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="font-semibold">${transaction.description}</div>
+                                    <div class="text-sm text-base-content/70">
+                                        ${transaction.category}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold ${amountClass}">
+                                    ${isExpense ? '-' : '+'}R$ ${transaction.amount.toFixed(2)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    document.getElementById('modal-transactions').innerHTML = transactionsHtml;
+    
+    // Initialize Lucide icons for new elements
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function closeDayModal() {
+    document.getElementById('day-modal').classList.remove('modal-open');
+}
+</script>
+{% endblock %}

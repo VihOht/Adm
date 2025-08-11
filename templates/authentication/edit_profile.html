@@ -1,0 +1,174 @@
+{% extends 'landingpage/base.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="max-w-4xl mx-auto">
+  <!-- Navigation -->
+  <div class="mb-6">
+    <a href="{% url 'authentication:profile' %}" class="btn btn-ghost btn-sm">
+      <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i>
+      Voltar ao Perfil
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Photo Management -->
+    <div class="lg:col-span-1">
+      <div class="card bg-base-100 shadow-lg">
+        <div class="card-body text-center">
+          <h3 class="card-title justify-center mb-4">
+            <i data-lucide="camera" class="w-5 h-5 mr-2"></i>
+            Foto do Perfil
+          </h3>
+          
+          <!-- Current Profile Image -->
+          <div class="avatar mx-auto mb-4">
+            <div class="w-32 rounded-full {% if not user.get_profile_image_url %}bg-primary text-primary-content flex items-center justify-center{% endif %}">
+              {% if user.get_profile_image_url %}
+                <img src="{{ user.get_profile_image_url }}" alt="Profile Image" class="rounded-full" id="current-profile-image">
+              {% else %}
+                <i data-lucide="user" class="w-16 h-16" id="default-profile-icon"></i>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Photo Upload Form -->
+          <form method="post" enctype="multipart/form-data" id="photo-upload-form" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_photo">
+            
+            <div class="form-control">
+              <input 
+                type="file" 
+                name="profile_image" 
+                accept="image/*" 
+                class="file-input file-input-bordered file-input-primary w-full" 
+                id="photo-input"
+              />
+              <label class="label">
+                <span class="label-text-alt">JPG, PNG ou WEBP. Máx. 5MB</span>
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm w-full">
+              <i data-lucide="upload" class="w-4 h-4 mr-1"></i>
+              Carregar Foto
+            </button>
+          </form>
+
+          <!-- Delete Photo -->
+          {% if user.get_profile_image_url %}
+            <div class="divider"></div>
+            <form method="post" onsubmit="return confirm('Tem certeza que deseja remover sua foto de perfil?')">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete_photo">
+              <button type="submit" class="btn btn-outline btn-error btn-sm w-full">
+                <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i>
+                Remover Foto
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Form -->
+    <div class="lg:col-span-1">
+      <div class="card bg-base-100 shadow-lg">
+        <div class="card-body">
+          <h2 class="card-title mb-6">
+            <i data-lucide="edit" class="w-5 h-5 mr-2"></i>
+            Editar Informações
+          </h2>
+
+          <!-- Messages -->
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} mb-4">
+                <i data-lucide="{% if message.tags == 'error' %}alert-circle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}info{% endif %}" class="w-4 h-4"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <!-- Profile Form -->
+          <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_profile">
+
+            <div class="grid grid-cols-1 gap-4">
+              <!-- Username -->
+              <div class="form-control flex flex-col">
+                <label class="label">
+                  <span class="label-text font-semibold">Nome de Usuário *</span>
+                </label>
+                <input 
+                  type="text" 
+                  name="username" 
+                  value="{{ user.username }}" 
+                  class="input input-bordered" 
+                  required 
+                  maxlength="150"
+                />
+                <label class="label">
+                  <span class="label-text-alt">Este será seu nome de exibição no sistema</span>
+                </label>
+              </div>
+
+              <!-- Email (readonly) -->
+              <div class="form-control flex flex-col">
+                <label class="label">
+                  <span class="label-text font-semibold">Email</span>
+                </label>
+                <input 
+                  type="email" 
+                  value="{{ user.email }}" 
+                  class="input input-bordered bg-base-200" 
+                  readonly 
+                />
+                <label class="label">
+                  <span class="label-text-alt">Não é possível alterar o email</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="card-actions justify-end mt-6">
+              <a href="{% url 'authentication:profile' %}" class="btn btn-ghost">
+                Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="save" class="w-4 h-4 mr-1"></i>
+                Salvar Alterações
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for photo preview -->
+<script>
+document.getElementById('photo-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const currentImage = document.getElementById('current-profile-image');
+            const defaultIcon = document.getElementById('default-profile-icon');
+            
+            if (currentImage) {
+                currentImage.src = e.target.result;
+            } else if (defaultIcon) {
+                const avatarDiv = defaultIcon.parentElement;
+                avatarDiv.innerHTML = '<img src="' + e.target.result + '" alt="Preview" class="rounded-full" id="current-profile-image">';
+                avatarDiv.classList.remove('bg-primary', 'text-primary-content', 'flex', 'items-center', 'justify-center');
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}

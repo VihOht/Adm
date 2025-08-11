@@ -52,6 +52,150 @@ def profile_view(request):
     return render(request, "authentication/profile.html")
 
 
+@login_required
+def edit_profile_view(request):
+    """Edit user profile view"""
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "upload_photo":
+            # Handle profile image upload
+            if "profile_image" in request.FILES:
+                profile_image = request.FILES["profile_image"]
+
+                # Validate file size (5MB max)
+                if profile_image.size > 5 * 1024 * 1024:
+                    messages.error(request, "A imagem deve ter no máximo 5MB.")
+                    return render(request, "authentication/edit_profile.html")
+
+                # Validate file type
+                allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+                if profile_image.content_type not in allowed_types:
+                    messages.error(
+                        request, "Apenas imagens JPG, PNG e WEBP são permitidas."
+                    )
+                    return render(request, "authentication/edit_profile.html")
+
+                try:
+                    # Delete old image if exists
+                    if request.user.profile_image:
+                        request.user.delete_profile_image()
+
+                    request.user.profile_image = profile_image
+                    request.user.save()
+                    messages.success(request, "Foto de perfil atualizada com sucesso!")
+
+                except Exception as e:
+                    messages.error(request, f"Erro ao atualizar foto: {str(e)}")
+
+            else:
+                messages.error(request, "Nenhuma imagem foi selecionada.")
+
+        elif action == "delete_photo":
+            # Handle photo deletion
+            try:
+                request.user.delete_profile_image()
+                messages.success(request, "Foto de perfil removida com sucesso!")
+            except Exception as e:
+                messages.error(request, f"Erro ao remover foto: {str(e)}")
+
+        elif action == "update_profile":
+            # Handle profile information update
+            username = request.POST.get("username", "").strip()
+
+            # Validation
+            if not username:
+                messages.error(request, "Nome de usuário é obrigatório.")
+                return render(request, "authentication/edit_profile.html")
+
+            # Check if username is taken by another user
+            if (
+                User.objects.filter(username=username)
+                .exclude(id=request.user.id)
+                .exists()
+            ):
+                messages.error(request, "Este nome de usuário já está em uso.")
+                return render(request, "authentication/edit_profile.html")
+
+            try:
+                # Update user information
+                request.user.username = username
+                request.user.save()
+                messages.success(request, "Perfil atualizado com sucesso!")
+                return redirect("authentication:profile")
+
+            except Exception as e:
+                messages.error(request, f"Erro ao atualizar perfil: {str(e)}")
+
+    return render(request, "authentication/edit_profile.html")
+
+
+@login_required
+def change_password_view(request):
+    """Change user password view"""
+    if request.method == "POST":
+        current_password = request.POST.get("current_password")
+        new_password1 = request.POST.get("new_password1")
+        new_password2 = request.POST.get("new_password2")
+
+        # Validation
+        if not all([current_password, new_password1, new_password2]):
+            messages.error(request, "Por favor, preencha todos os campos.")
+            return render(request, "authentication/change_password.html")
+
+        # Check current password
+        if not request.user.check_password(current_password):
+            messages.error(request, "Senha atual incorreta.")
+            return render(request, "authentication/change_password.html")
+
+        # Check if new passwords match
+        if new_password1 != new_password2:
+            messages.error(request, "As novas senhas não conferem.")
+            return render(request, "authentication/change_password.html")
+
+        # Check password strength
+        if len(new_password1) < 8:
+            messages.error(request, "A nova senha deve ter pelo menos 8 caracteres.")
+            return render(request, "authentication/change_password.html")
+
+        # Check if new password is different from current
+        if request.user.check_password(new_password1):
+            messages.error(request, "A nova senha deve ser diferente da senha atual.")
+            return render(request, "authentication/change_password.html")
+
+        try:
+            # Update password
+            request.user.set_password(new_password1)
+            request.user.save()
+
+            # Re-authenticate user to maintain session
+            from django.contrib.auth import update_session_auth_hash
+
+            update_session_auth_hash(request, request.user)
+
+            messages.success(request, "Senha alterada com sucesso!")
+            return redirect("authentication:profile")
+
+        except Exception as e:
+            messages.error(request, f"Erro ao alterar senha: {str(e)}")
+            return render(request, "authentication/change_password.html")
+
+    return render(request, "authentication/change_password.html")
+
+
+@login_required
+def delete_profile_image_view(request):
+    """Delete user profile image"""
+    if request.method == "POST":
+        try:
+            request.user.delete_profile_image()
+            messages.success(request, "Foto de perfil removida com sucesso!")
+        except Exception as e:
+            messages.error(request, f"Erro ao remover foto: {str(e)}")
+
+    return redirect("authentication:edit_profile")
+
+
 def register_view(request):
     """Register new user view"""
     if request.user.is_authenticated:

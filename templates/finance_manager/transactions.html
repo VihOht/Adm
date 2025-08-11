@@ -64,14 +64,29 @@
 {% block finance_content %}
 <div class="max-w-7xl mx-auto">
   <!-- Page Header -->
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-base-content mb-2">
-      <i data-lucide="list" class="w-8 h-8 inline-block mr-3"></i>
-      Todas as Transações
-    </h1>
-    <p class="text-base-content/70">Visualize e gerencie todas as suas receitas e gastos</p>
-  </div>
+   <div class='mb-8  flex items-center justify-between'>  
+    <div>
+      <h1 class="text-3xl font-bold text-base-content mb-2">
+        <i data-lucide="list" class="w-8 h-8 inline-block mr-3"></i>
+        Todas as Transações
+      </h1>
+      <p class="text-base-content/70">Visualize e gerencie todas as suas receitas e gastos</p>
+    </div>
 
+    <!-- Transactions Navigation -->
+    <div class="flex gap-2">
+      <a href="{% url 'finance_manager:transactions' %}" 
+         class="btn btn-outline btn-sm {% if request.resolver_match.url_name == 'transactions' %}btn-active{% endif %}">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 mr-2"></i>
+        Tabelas
+      </a>
+      <a href="{% url 'finance_statistics:calendar' %}" 
+         class="btn btn-outline btn-sm {% if request.resolver_match.url_name == 'calendar' %}btn-active{% endif %}">
+        <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
+        Calendário
+      </a>
+    </div>
+  </div>
   <!-- Summary Stats -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
     <div class="stat bg-base-100 rounded-lg shadow">
@@ -116,9 +131,9 @@
 
   <!-- Transactions Tabs -->
   <div class="tabs tabs-boxed mb-6">
-    <a class="tab tab-active" onclick="showTab('all')">Todas</a>
-    <a class="tab" onclick="showTab('incomes')">Receitas</a>
-    <a class="tab" onclick="showTab('expenses')">Gastos</a>
+    <a id="all-button" class="tab tab-active" href="#all">Todas</a>
+    <a id="expenses-button" class="tab" href="#expenses">Gastos</a>
+    <a id="incomes-button" class="tab" href="#incomes">Receitas</a>
   </div>
 
   <!-- Incomes Tab -->
@@ -388,13 +403,36 @@ function showTab(tabName) {
   document.getElementById(tabName + '-tab').classList.add('block');
   
   // Add active class to clicked tab button
-  event.target.classList.add('tab-active');
+  document.getElementById(tabName + '-button').classList.add('tab-active');
+}
+
+function onHashChange() {
+  const hash = window.location.hash;
+  if (hash == "#expenses") {
+    showTab("expenses")
+  }
+  else if (hash == "#incomes"){
+    showTab("incomes")
+  }
+  else if (hash == "#all"){
+    showTab("all")
+  }
 }
 
 // Initialize first tab as visible
 document.addEventListener('DOMContentLoaded', function() {
   // Show the "all" tab by default
   showTab('all');
+  onHashChange()
 });
+
+window.addEventListener("load", function() {
+  showTab('all');
+  onHashChange()
+})
+
+window.addEventListener('hashchange', onHashChange)
+
+
 </script>
 {% endblock %}

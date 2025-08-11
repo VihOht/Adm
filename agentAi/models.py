@@ -29,8 +29,11 @@ class Conversation(models.Model):
     def deactivate_if_expired(self):
         """Deactivate conversation if it's expired"""
         if self.is_expired():
-            self.is_active = False
-            self.save()
+            if self.messages.first().exists():
+                self.is_active = False
+                self.save()
+            else:
+                self.updated_at = timezone.now()
             return True
         return False
 
