@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (modal && image) {
             image.src = imageSrc;
-            image.alt = imageAlt;finance_statistics
+            image.alt = imageAlt;
             modal.classList.add('active');
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
         }
