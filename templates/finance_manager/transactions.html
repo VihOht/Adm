@@ -39,14 +39,6 @@
 </style>
 
 <script>
-  // Set "Transações" as active page
-  window.addEventListener("load", function() {
-    un_l = document.getElementById("s_items")
-    actual = un_l.children[1]
-    actual.children[0].classList.add("bg-primary", "text-primary-content")
-    sub_actual = actual.children[1]
-    sub_actual.children[0].children[0].classList.add("bg-secondary", "text-secondary-content")
-  })
 
   // Set URLs and CSRF token for JavaScript to use
   window.createExpenseUrl = '{% url "finance_manager:create_expense" %}';

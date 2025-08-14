@@ -4,29 +4,22 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from .calendar_generator import TransactionCalendarGenerator
-from .graph_generator import generate_all_graphs
 from .utils import get_finance_dataframes
 
 
 @login_required
 def dashboard_view(request):
     """Finance statistics dashboard view"""
-    # Generate all graphs
-    graphs = generate_all_graphs(request.user)
-
-    # Check if user has any financial data
-    has_data = any(graph is not None for graph in graphs.values())
 
     # Get basic counts for the stats cards
     dataframes = get_finance_dataframes(request.user)
 
     context = {
-        "has_data": has_data,
+        "has_data": True,
         "total_expenses": len(dataframes.get("expenses", [])),
         "total_incomes": len(dataframes.get("incomes", [])),
         "expense_categories_count": len(dataframes.get("expense_categories", [])),
         "income_categories_count": len(dataframes.get("income_categories", [])),
-        **graphs,  # Add all graphs to context
     }
 
     return render(request, "finance_statistics/dashboard.html", context)
@@ -100,7 +93,7 @@ def day_transactions_ajax(request):
         return JsonResponse({"error": "Day not found"}, status=404)
 
     print(date)
-    
+
     return JsonResponse(
         {
             "date": date,
@@ -114,3 +107,155 @@ def day_transactions_ajax(request):
             },
         }
     )
+
+
+@login_required
+def dashboard(request):
+    """Finance statistics dashboard with quick loading and AJAX graphs"""
+    user = request.user
+
+    # Get basic counts for immediate display
+    total_expenses = Expenses.objects.filter(user=user).count()
+    total_incomes = Incomes.objects.filter(user=user).count()
+    expense_categories_count = ExpenseCategory.objects.filter(user=user).count()
+    income_categories_count = IncomeCategorys.objects.filter(user=user).count()
+
+    # Check if user has data
+    has_data = total_expenses > 0 or total_incomes > 0
+
+    context = {
+        "total_expenses": total_expenses,
+        "total_incomes": total_incomes,
+        "expense_categories_count": expense_categories_count,
+        "income_categories_count": income_categories_count,
+        "has_data": has_data,
+        # Don't generate graphs here - they'll be loaded via AJAX
+    }
+
+    return render(request, "finance_statistics/dashboard.html", context)
+
+
+@login_required
+def ajax_expense_category_graph(request):
+    """Generate expense category graph via AJAX"""
+    try:
+        user = request.user
+        from .graph_generator import FinanceGraphGenerator
+
+        generator = FinanceGraphGenerator(user)
+        graph_data = generator.generate_expenses_by_category()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "graph": graph_data,
+                "has_data": graph_data is not None,
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
+@login_required
+def ajax_monthly_expenses_graph(request):
+    """Generate monthly expenses trend graph via AJAX"""
+    try:
+        user = request.user
+        from .graph_generator import FinanceGraphGenerator
+
+        generator = FinanceGraphGenerator(user)
+        graph_data = generator.generate_monthly_expenses_trend()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "graph": graph_data,
+                "has_data": graph_data is not None,
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
+@login_required
+def ajax_income_expenses_graph(request):
+    """Generate income vs expenses comparison graph via AJAX"""
+    try:
+        user = request.user
+        from .graph_generator import FinanceGraphGenerator
+
+        generator = FinanceGraphGenerator(user)
+        graph_data = generator.generate_income_vs_expenses()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "graph": graph_data,
+                "has_data": graph_data is not None,
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
+@login_required
+def ajax_income_category_graph(request):
+    """Generate income category graph via AJAX"""
+    try:
+        user = request.user
+        from .graph_generator import FinanceGraphGenerator
+
+        generator = FinanceGraphGenerator(user)
+        graph_data = generator.generate_income_by_category()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "graph": graph_data,
+                "has_data": graph_data is not None,
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
+@login_required
+def ajax_daily_spending_graph(request):
+    """Generate daily spending pattern graph via AJAX"""
+    try:
+        user = request.user
+        from .graph_generator import FinanceGraphGenerator
+
+        generator = FinanceGraphGenerator(user)
+        graph_data = generator.generate_daily_spending_pattern()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "graph": graph_data,
+                "has_data": graph_data is not None,
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
+@login_required
+def ajax_financial_heatmap_graph(request):
+    """Generate financial heatmap graph via AJAX"""
+    try:
+        user = request.user
+        from .graph_generator import FinanceGraphGenerator
+
+        generator = FinanceGraphGenerator(user)
+        graph_data = generator.generate_financial_heatmap()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "graph": graph_data,
+                "has_data": graph_data is not None,
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})

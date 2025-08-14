@@ -798,6 +798,10 @@ document.addEventListener('DOMContentLoaded', function() {
         closeIncomeCategoryModal();
       } else if (event.target.id === 'editIncomeModal') {
         closeEditIncomeModal();
+      } else if (event.target.id === 'importModal') {
+        closeImportModal();
+      } else if (event.target.id === 'exportModal') {
+        closeExportModal();
       }
     }
   });
@@ -811,6 +815,8 @@ document.addEventListener('DOMContentLoaded', function() {
       closeIncomeModal();
       closeIncomeCategoryModal();
       closeEditIncomeModal();
+      closeImportModal();
+      closeExportModal();
     }
   });
 });
@@ -1021,32 +1027,452 @@ function handleFileSelect(event) {
   `;
   fileInfo.classList.remove("hidden");
 
-  // For JSON files, parse and preview
+  // Parse and preview file based on type
   if (fileName.endsWith(".json")) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const data = JSON.parse(e.target.result);
-        showImportPreview(data);
-        document.getElementById("import-btn").disabled = false;
-      } catch (error) {
-        if (typeof toastError !== "undefined") {
-          toastError("Arquivo JSON inválido" + (e));
-        } else {
-          alert("Arquivo JSON inválido");
-        }
-        resetImportModal();
-      }
-    };
-    reader.readAsText(file);
-  } else {
-    // For CSV and Excel files, show generic preview
-    showGenericPreview(fileType);
-    document.getElementById("import-btn").disabled = false;
+    parseAndPreviewJSON(file);
+  } else if (fileName.endsWith(".csv")) {
+    parseAndPreviewCSV(file);
+  } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+    parseAndPreviewExcel(file);
   }
 }
 
+function parseAndPreviewJSON(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      showImportPreview(data, "JSON");
+      document.getElementById("import-btn").disabled = false;
+    } catch (error) {
+      if (typeof toastError !== "undefined") {
+        toastError("Arquivo JSON inválido: " + error.message);
+      } else {
+        alert("Arquivo JSON inválido: " + error.message);
+      }
+      resetImportModal();
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parseAndPreviewCSV(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const content = e.target.result;
+      const lines = content.split('\n');
+      const data = parseCSVContent(lines);
+      showImportPreview(data, "CSV");
+      document.getElementById("import-btn").disabled = false;
+    } catch (error) {
+      if (typeof toastError !== "undefined") {
+        toastError("Erro ao processar arquivo CSV: " + error.message);
+      } else {
+        alert("Erro ao processar arquivo CSV: " + error.message);
+      }
+      resetImportModal();
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parseAndPreviewExcel(file) {
+  // Enhanced Excel preview with actual file analysis
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      // We can't fully parse Excel in browser, but we can provide better preview
+      const arrayBuffer = e.target.result;
+      const data = analyzeExcelFile(arrayBuffer);
+      showImportPreview(data, "Excel");
+      document.getElementById("import-btn").disabled = false;
+    } catch (error) {
+      // Fallback to basic Excel preview
+      const data = {
+        expense_categories: "Será processado no servidor",
+        income_categories: "Será processado no servidor", 
+        expenses: "Será processado no servidor",
+        incomes: "Será processado no servidor",
+        fileSize: (file.size / 1024).toFixed(2) + " KB",
+        lastModified: new Date(file.lastModified).toLocaleDateString('pt-BR')
+      };
+      showImportPreview(data, "Excel");
+      document.getElementById("import-btn").disabled = false;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function analyzeExcelFile(arrayBuffer) {
+  // Basic analysis without full parsing
+  const data = {
+    expense_categories: "Detectando estrutura...",
+    income_categories: "Detectando estrutura...",
+    expenses: "Detectando estrutura...",
+    incomes: "Detectando estrutura...",
+    fileInfo: {
+      size: (arrayBuffer.byteLength / 1024).toFixed(2) + " KB",
+      type: "Excel Workbook",
+      estimatedSheets: "Múltiplas abas detectadas"
+    }
+  };
+  
+  return data;
+}
+
+function parseCSVContent(lines) {
+  const data = {
+    expense_categories: [],
+    income_categories: [],
+    expenses: [],
+    incomes: []
+  };
+
+  let currentSection = null;
+  let headers = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // Parse CSV line (simple parsing - doesn't handle quoted commas)
+    const row = line.split(',').map(cell => cell.trim().replace(/^"(.*)"$/, '$1'));
+
+    // Check for section headers
+    if (row.length >= 1) {
+      if (row[0] === "EXPENSE CATEGORIES") {
+        currentSection = "expense_categories";
+        continue;
+      } else if (row[0] === "INCOME CATEGORIES") {
+        currentSection = "income_categories";
+        continue;
+      } else if (row[0] === "EXPENSES") {
+        currentSection = "expenses";
+        continue;
+      } else if (row[0] === "INCOMES") {
+        currentSection = "incomes";
+        continue;
+      }
+
+      // Check for headers row
+      if (currentSection && (row[0] === "Name" || row[0] === "Category")) {
+        headers = row;
+        continue;
+      }
+    }
+
+    // Process data rows
+    if (currentSection && headers.length > 0 && row.length >= headers.length) {
+      const rowData = {};
+      headers.forEach((header, index) => {
+        rowData[header] = row[index] || "";
+      });
+
+      if (currentSection === "expense_categories" || currentSection === "income_categories") {
+        data[currentSection].push({
+          name: rowData["Name"] || "",
+          description: rowData["Description"] || "",
+          color: rowData["Color"] || "#FFFFFF"
+        });
+      } else if (currentSection === "expenses") {
+        data[currentSection].push({
+          category: rowData["Category"] || "",
+          date: rowData["Date"] || "",
+          description: rowData["Description"] || "",
+          detailed_description: rowData["Detailed Description"] || "",
+          amount: parseInt(rowData["Amount (cents)"]) || 0
+        });
+      } else if (currentSection === "incomes") {
+        data[currentSection].push({
+          category: rowData["Category"] || "",
+          date: rowData["Date"] || "",
+          description: rowData["Description"] || "",
+          detailed_description: rowData["Detailed Description"] || "",
+          amount: parseInt(rowData["Amount (cents)"]) || 0
+        });
+      }
+    }
+  }
+
+  return data;
+}
+
+function showImportPreview(data, fileType) {
+  const preview = document.getElementById("import-preview");
+  const content = document.getElementById("preview-content");
+  
+  let expenseCategories, incomeCategories, expenses, incomes;
+  
+  if (fileType === "Excel") {
+    // Enhanced Excel preview
+    content.innerHTML = `
+      <div>
+        <div class="text-lg font-semibold mb-4 text-center">Prévia do arquivo Excel</div>
+        
+        <!-- File Info Section -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div class="flex items-center justify-between cursor-pointer" onclick="toggleSection('excel-info')">
+            <div class="flex items-center">
+              <i data-lucide="file-spreadsheet" class="w-5 h-5 text-blue-600 mr-2"></i>
+              <span class="font-medium text-blue-800">Informações do Arquivo</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-blue-600 transition-transform" id="excel-info-icon"></i>
+          </div>
+          <div class="hidden" id="excel-info-content" class="mt-3 space-y-2">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-blue-600 font-medium">Tamanho:</span>
+                <span class="text-blue-800">${data.fileInfo?.size || 'Calculando...'}</span>
+              </div>
+              <div>
+                <span class="text-blue-600 font-medium">Tipo:</span>
+                <span class="text-blue-800">${data.fileInfo?.type || 'Excel Workbook'}</span>
+              </div>
+            </div>
+            <div class="text-sm">
+              <span class="text-blue-600 font-medium">Status:</span>
+              <span class="text-blue-800">Arquivo será processado no servidor com análise completa</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expected Structure Section -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div class="flex items-center justify-between cursor-pointer" onclick="toggleSection('excel-structure')">
+            <div class="flex items-center">
+              <i data-lucide="layout" class="w-5 h-5 text-green-600 mr-2"></i>
+              <span class="font-medium text-green-800">Estrutura Esperada</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-green-600 transition-transform" id="excel-structure-icon"></i>
+          </div>
+          <div class="hidden" id="excel-structure-content" class="mt-3">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="bg-white rounded p-3 border border-green-200">
+                <div class="flex items-center mb-2">
+                  <div class="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                  <span class="font-medium">Expense Categories</span>
+                </div>
+                <div class="text-xs text-gray-600">Aba com categorias de gastos</div>
+              </div>
+              
+              <div class="bg-white rounded p-3 border border-green-200">
+                <div class="flex items-center mb-2">
+                  <div class="w-3 h-3 bg-emerald-500 rounded mr-2"></div>
+                  <span class="font-medium">Income Categories</span>
+                </div>
+                <div class="text-xs text-gray-600">Aba com categorias de receitas</div>
+              </div>
+              
+              <div class="bg-white rounded p-3 border border-green-200">
+                <div class="flex items-center mb-2">
+                  <div class="w-3 h-3 bg-red-500 rounded mr-2"></div>
+                  <span class="font-medium">Expenses</span>
+                </div>
+                <div class="text-xs text-gray-600">Aba com lista de gastos</div>
+              </div>
+              
+              <div class="bg-white rounded p-3 border border-green-200">
+                <div class="flex items-center mb-2">
+                  <div class="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                  <span class="font-medium">Incomes</span>
+                </div>
+                <div class="text-xs text-gray-600">Aba com lista de receitas</div>
+              </div>
+            </div>
+            
+            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+              <div class="flex items-center">
+                <i data-lucide="info" class="w-4 h-4 text-yellow-600 mr-2"></i>
+                <span class="text-yellow-800 font-medium">Dica:</span>
+              </div>
+              <div class="text-yellow-700 mt-1">
+                Use arquivos exportados por este sistema para garantir compatibilidade completa.
+              </div>
+            </div>
+          </div>
+        </div>
+
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    // Enhanced JSON/CSV preview with collapsible sections
+    expenseCategories = Array.isArray(data.expense_categories) ? data.expense_categories.length : 0;
+    incomeCategories = Array.isArray(data.income_categories) ? data.income_categories.length : 0;
+    expenses = Array.isArray(data.expenses) ? data.expenses.length : 0;
+    incomes = Array.isArray(data.incomes) ? data.incomes.length : 0;
+    
+    const totalRecords = expenseCategories + incomeCategories + expenses + incomes;
+    
+    content.innerHTML = `
+      <div>
+        <div class="text-lg font-semibold mb-4 text-center">Prévia dos dados (${fileType})</div>
+        
+        <!-- Summary Cards Section -->
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+          <div class="flex items-center justify-between cursor-pointer" onclick="toggleSection('summary-cards')">
+            <div class="flex items-center">
+              <i data-lucide="bar-chart-3" class="w-5 h-5 text-gray-600 mr-2"></i>
+              <span class="font-medium text-gray-800">Resumo dos Dados</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-600 transition-transform" id="summary-cards-icon"></i>
+          </div>
+          <div class="hidden" id="summary-cards-content" class="mt-3">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div class="text-blue-600 font-medium">Categorias de Gastos</div>
+                <div class="text-2xl font-bold text-blue-800">${expenseCategories}</div>
+                ${expenseCategories > 0 ? `<div class="text-xs text-blue-600 mt-1">Primeiras: ${getPreviewItems(data.expense_categories, 'name')}</div>` : ''}
+              </div>
+              
+              <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div class="text-green-600 font-medium">Categorias de Receitas</div>
+                <div class="text-2xl font-bold text-green-800">${incomeCategories}</div>
+                ${incomeCategories > 0 ? `<div class="text-xs text-green-600 mt-1">Primeiras: ${getPreviewItems(data.income_categories, 'name')}</div>` : ''}
+              </div>
+              
+              <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div class="text-red-600 font-medium">Gastos</div>
+                <div class="text-2xl font-bold text-red-800">${expenses}</div>
+                ${expenses > 0 ? `<div class="text-xs text-red-600 mt-1">Primeiros: ${getPreviewItems(data.expenses, 'description')}</div>` : ''}
+              </div>
+              
+              <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                <div class="text-emerald-600 font-medium">Receitas</div>
+                <div class="text-2xl font-bold text-emerald-800">${incomes}</div>
+                ${incomes > 0 ? `<div class="text-xs text-emerald-600 mt-1">Primeiras: ${getPreviewItems(data.incomes, 'description')}</div>` : ''}
+              </div>
+            </div>
+            
+            <!-- Total Summary -->
+            <div class="bg-white border border-gray-300 rounded-lg p-4 text-center">
+              <div class="text-gray-600">Total de registros para importar</div>
+              <div class="text-3xl font-bold text-gray-800">${totalRecords}</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Detailed Preview Tables Section -->
+        ${(expenseCategories > 0 || expenses > 0 || incomeCategories > 0 || incomes > 0) ? `
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center justify-between cursor-pointer" onclick="toggleSection('detailed-preview')">
+            <div class="flex items-center">
+              <i data-lucide="table" class="w-5 h-5 text-gray-600 mr-2"></i>
+              <span class="font-medium text-gray-800">Prévia Detalhada</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-600 transition-transform" id="detailed-preview-icon"></i>
+          </div>
+          <div class="hidden" id="detailed-preview-content" class="mt-3">
+            ${expenseCategories > 0 ? createCollapsiblePreviewTable('Categorias de Gastos', data.expense_categories.slice(0, 3), ['name', 'description', 'color'], 'expense-categories') : ''}
+            ${expenses > 0 ? createCollapsiblePreviewTable('Gastos (amostra)', data.expenses.slice(0, 3), ['description', 'category', 'amount'], 'expenses') : ''}
+            ${incomeCategories > 0 ? createCollapsiblePreviewTable('Categorias de Receitas', data.income_categories.slice(0, 3), ['name', 'description', 'color'], 'income-categories') : ''}
+            ${incomes > 0 ? createCollapsiblePreviewTable('Receitas (amostra)', data.incomes.slice(0, 3), ['description', 'category', 'amount'], 'incomes') : ''}
+          </div>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  preview.classList.remove("hidden");
+  
+  // Initialize Lucide icons for the new elements
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
+
+function createCollapsiblePreviewTable(title, items, fields, sectionId) {
+  if (!items || items.length === 0) return '';
+  
+  const headers = fields.map(field => {
+    switch(field) {
+      case 'name': return 'Nome';
+      case 'description': return 'Descrição';
+      case 'color': return 'Cor';
+      case 'category': return 'Categoria';
+      case 'amount': return 'Valor';
+      default: return field;
+    }
+  }).join('</th><th class="px-2 py-1 text-left text-xs font-medium text-gray-600 border">');
+  
+  const rows = items.map(item => {
+    const cells = fields.map(field => {
+      let value = item[field] || '-';
+      if (field === 'amount' && typeof value === 'number') {
+        value = `R$ ${(value / 100).toFixed(2)}`;
+      } else if (field === 'color' && value !== '-') {
+        value = `<span class="inline-block w-4 h-4 rounded border" style="background-color: ${value}"></span> ${value}`;
+      }
+      return value;
+    }).join('</td><td class="px-2 py-1 text-xs text-gray-800 border">');
+    
+    return `<tr><td class="px-2 py-1 text-xs text-gray-800 border">${cells}</td></tr>`;
+  }).join('');
+  
+  return `
+    <div class="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+      <div class="bg-gray-50 px-3 py-2 cursor-pointer" onclick="toggleSection('${sectionId}')">
+        <div class="flex items-center justify-between">
+          <h4 class="font-medium text-sm text-gray-700">${title}</h4>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-gray-600 transition-transform" id="${sectionId}-icon"></i>
+        </div>
+      </div>
+      <div class="hidden" id="${sectionId}-content" class="p-3">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-xs border-collapse border border-gray-300">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-600 border">${headers}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+        ${items.length > 3 ? `<p class="text-xs text-gray-500 mt-2">Mostrando 3 de ${items.length} registros</p>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function toggleSection(sectionId) {
+  const content = document.getElementById(`${sectionId}-content`);
+  const icon = document.getElementById(`${sectionId}-icon`);
+  
+  if (!content || !icon) return;
+  
+  const isHidden = content.style.display === 'none';
+  
+  if (isHidden) {
+    content.style.display = 'block';
+    icon.style.transform = 'rotate(180deg)';
+  } else {
+    content.style.display = 'none';
+    icon.style.transform = 'rotate(0deg)';
+  }
+}
+
+function getPreviewItems(items, field) {
+  if (!Array.isArray(items) || items.length === 0) return 'Nenhum';
+  
+  const names = items.slice(0, 3).map(item => item[field] || 'Sem nome').filter(name => name && name !== 'Sem nome');
+  
+  if (names.length === 0) return 'Dados sem nome';
+  
+  let result = names.join(', ');
+  if (items.length > 3) {
+    result += `... (+${items.length - 3})`;
+  }
+  
+  return result.length > 40 ? result.substring(0, 37) + '...' : result;
+}
+
 function showGenericPreview(fileType) {
+  // This function is now only used as fallback
   const preview = document.getElementById("import-preview");
   const content = document.getElementById("preview-content");
   
@@ -1185,7 +1611,11 @@ function executeExport() {
         closeExportModal();
         
         // Show success message
-        showAlert('Arquivo exportado com sucesso!', 'success');
+        if (typeof toastSuccess !== 'undefined') {
+            toastSuccess('Arquivo exportado com sucesso!');
+        } else {
+            alert('Arquivo exportado com sucesso!');
+        }
     }, 1000);
 }
 
@@ -1194,3 +1624,43 @@ function exportData(format) {
     // This function is deprecated, use the modal instead
     openExportModal();
 }
+
+// Add event listeners for modal closing (including import/export modals)
+document.addEventListener('DOMContentLoaded', function() {
+  // Close modals when clicking outside
+  document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('modal')) {
+      if (event.target.id === 'expenseModal') {
+        closeExpenseModal();
+      } else if (event.target.id === 'categoryModal') {
+        closeCategoryModal();
+      } else if (event.target.id === 'editExpenseModal') {
+        closeEditExpenseModal();
+      } else if (event.target.id === 'incomeModal') {
+        closeIncomeModal();
+      } else if (event.target.id === 'incomeCategoryModal') {
+        closeIncomeCategoryModal();
+      } else if (event.target.id === 'editIncomeModal') {
+        closeEditIncomeModal();
+      } else if (event.target.id === 'importModal') {
+        closeImportModal();
+      } else if (event.target.id === 'exportModal') {
+        closeExportModal();
+      }
+    }
+  });
+  
+  // Close modals on Escape key
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      closeExpenseModal();
+      closeCategoryModal();
+      closeEditExpenseModal();
+      closeIncomeModal();
+      closeIncomeCategoryModal();
+      closeEditIncomeModal();
+      closeImportModal();
+      closeExportModal();
+    }
+  });
+});

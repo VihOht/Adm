@@ -8,6 +8,7 @@ Adicionar um texto no botão de abrir o chat IA:
 
 Adicionar o texto como o no site do Chat GPT:
 15 - talvez se aparecesse semelhante ao gpt já estaria bem melhor
+!!IMPLEMENTED
 
 Colocar filtros nos gráficos para envitar muitas informações:
 19 - era sobre os gráficos, colocar filtros
@@ -20,6 +21,7 @@ Mudar a legenda dos Saldos no Dashboard para "Saldo Atual"
 
 Adicionar uma confirmação no download dos dados (Exportação)
 Seria interessante mostrar uma prévia antes e confirmar se deseja realmente baixar
+!!IMPLEMENTED
 
 Adicionar opções de moedas e conversões semi automáticas
 Daria para selecionar a moeda ? Tipo, se quisesse utilizar pra controlar os meus gastos em Minverva, teria que colocar em dolar
@@ -27,6 +29,7 @@ Ah, Configuração de moeda atual, configuração de moeda nos gastos e cambio e
 
 Sistemas de leitura de planilhas e svc
 Sistema de analise de dados com planilhas de exel ou svc implementado com leitura do texto e formatação por IA
+!!IMPLEMENTED
 
 Adicionar sistema de reservas de dinheiro, excluido-os da porção do saldo. !!!IMPORTANTE
 outra coisa que pensei agora: da pra tirar uma x porcentagem da receita e colocar imediatamente em um campo de receita ?

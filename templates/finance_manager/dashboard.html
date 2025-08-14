@@ -5,13 +5,6 @@
 {% block finance_head %}
 <link rel="stylesheet" type="text/css" href="{% static 'css/finance_dashboard.css' %}">
 <script>
-  // Set "Gastos" as actual Page
-  window.addEventListener("load", function() {
-    un_l = document.getElementById("s_items")
-    actual = un_l.children[1].children[0]
-    console.log(actual)
-    actual.classList.add("bg-primary", "text-primary-content")
-  })
 
   // Set URLs and CSRF token for JavaScript to use
   window.createExpenseUrl = '{% url "finance_manager:create_expense" %}';

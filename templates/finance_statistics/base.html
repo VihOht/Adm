@@ -3,40 +3,22 @@
 
 {% block finance_head %}
 {{ block.super }}
+<link href="{% static 'css/statistics-mobile.css' %}" rel="stylesheet" type="text/css" />
 <script src="{% static 'js/chart_modal.js' %}"></script>
-<script>
-  // Set "Estatísticas" as actual Page
-  window.addEventListener("load", function() {
-    un_l = document.getElementById("s_items")
-    // Find the statistics menu item and mark it as active
-    const menuItems = un_l.querySelectorAll('li > a');
-    menuItems.forEach(function(item) {
-      if (item.textContent.includes('Estatísticas')) {
-        item.classList.add("bg-primary", "text-primary-content");
-      }
-    });
-  })
-  // Set "Relatórios" as active page
-  window.addEventListener("load", function() {
-    un_l = document.getElementById("s_items")
-    actual = un_l.children[1]
-    actual.children[0].classList.add("bg-primary", "text-primary-content")
-    sub_actual = actual.children[1]
-    sub_actual.children[1].children[0].classList.add("bg-secondary", "text-secondary-content")
-  })
-</script>
+<script src="{% static 'js/finance_statistics.js' %}"></script>
 {% endblock %}
 
 {% block finance_content %}
 <div class="max-w-7xl mx-auto">
   <!-- Page Header with Navigation -->
-  <div class="mb-8 flex items-center justify-between">
+  <div class="mb-6 lg:mb-8 flex items-center justify-between">
     <div>
-      <h1 class="text-3xl font-bold text-base-content mb-2">
-        <i data-lucide="bar-chart-3" class="w-8 h-8 inline-block mr-3"></i>
-        Estatísticas Financeiras
+      <h1 class="text-2xl lg:text-3xl font-bold text-base-content mb-2">
+        <i data-lucide="bar-chart-3" class="w-6 h-6 lg:w-8 lg:h-8 inline-block mr-2 lg:mr-3"></i>
+        <span class="hidden sm:inline">Estatísticas Financeiras</span>
+        <span class="sm:hidden">Estatísticas</span>
       </h1>
-      <p class="text-base-content/70">Análise visual dos seus dados financeiros</p>
+      <p class="text-base-content/70 text-sm lg:text-base">Análise visual dos seus dados financeiros</p>
     </div>
   </div>
 

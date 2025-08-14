@@ -27,6 +27,61 @@
     }
   }
 </style>
+<script>
+    // Set "Gastos" as actual Page
+  window.addEventListener("load", function() {
+    side_list = document.getElementsByClassName("s_items")
+    url = window.location.pathname
+
+    const transacoes_ref = ["/finance/", "/finance/statistics/calendar/", "/finance/statistics/", "/finance/transactions/"]
+    const ver_transacoes_ref = ["/finance/statistics/calendar/", "/finance/transactions/"]
+    const relatorios_ref = ["/finance/statistics/"]
+
+    var is_active1 = false
+    var is_active2 = false
+    var is_active3 = false
+
+    var k = 0
+
+    for (k = 0; k < transacoes_ref.length; k++){
+      if (transacoes_ref[k] == url){
+        is_active1 = true
+      }
+    }
+    for (k = 0; k < ver_transacoes_ref.length; k++){
+      if (ver_transacoes_ref[k] == url){
+        is_active2 = true
+      }
+    }
+    for (k = 0; k < relatorios_ref.length; k++){
+      if (relatorios_ref[k] == url){
+        is_active3 = true
+      }
+    }
+
+    console.log(is_active3)
+
+    for(var j = 0; j < 2; j++){
+      if (is_active1){
+        actual = side_list[j].children[1].children[0]
+        actual.classList.add("bg-primary", "text-primary-content")
+      };
+      if (is_active2){
+        actual = side_list[j].children[1].children[1]
+        actual = actual.children[0].children[0]
+        console.log(actual)
+        actual.classList.add("bg-secondary", "text-secondary-content")
+      };
+      if (is_active3){
+        actual = side_list[j].children[1].children[1]
+        actual = actual.children[1].children[0]
+        console.log(actual)
+        actual.classList.add("bg-secondary", "text-secondary-content")
+      };
+    }
+
+  })
+</script>
 {% block finance_head %}{% endblock %}
 {% endblock %}
 
@@ -47,7 +102,7 @@
     
     <!-- Navigation Menu -->
     <nav class="p-4">
-      <ul id="s_items" class="menu menu-vertical w-full space-y-2">
+      <ul class="menu s_items menu-vertical w-full space-y-2">
         <!-- Página Principal -->
         <li>
           <a href="{% url 'landingpage' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group">
@@ -79,13 +134,7 @@
             </li>
           </ul>
         </li>
-        <!-- Página Principal -->
-        <li>
-          <a href="#" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group">
-            <i data-lucide="landmark" class="w-5 h-5 mr-3 text-base-content/70 group-hover:text-primary"></i>
-            <span class="font-medium">Dividas e Investimentos...</span>
-          </a>
-        </li>
+
       </ul>
     </nav>
     
@@ -152,7 +201,7 @@
           </div>
           
           <nav class="p-4">
-            <ul class="menu menu-vertical w-full space-y-2">
+            <ul class="menu s_items menu-vertical w-full space-y-2">
               <li>
                 <a href="{% url 'landingpage' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group">
                   <i data-lucide="home" class="w-5 h-5 mr-3 text-base-content/70 group-hover:text-primary"></i>
@@ -162,8 +211,24 @@
               <li>
                 <a href="{% url 'finance_manager:dashboard' %}" class="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group bg-primary text-primary-content">
                   <i data-lucide="credit-card" class="w-5 h-5 mr-3"></i>
-                  <span class="font-medium">Gastos</span>
+                  <span class="font-medium">Transações</span>
                 </a>
+
+                 <!-- Submenu for Gastos -->
+                <ul class="ml-6 mt-2 space-y-1">
+                  <li>
+                    <a href="{% url 'finance_manager:transactions' %}" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
+                      <i data-lucide="list" class="w-4 h-4 mr-2"></i>
+                      Ver Transações
+                    </a>
+                  </li>
+                  <li>
+                    <a href="{% url 'finance_statistics:dashboard' %}" class="flex items-center p-2 text-sm rounded-lg hover:bg-base-200 transition-colors text-base-content/80">
+                      <i data-lucide="pie-chart" class="w-4 h-4 mr-2"></i>
+                      Relatórios
+                    </a>
+                  </li>
+                </ul>
               </li>
             </ul>
           </nav>

@@ -1,0 +1,245 @@
+/* Mobile Sidebar Styles */
+
+/* Custom styles for sidebar */
+aside {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Active navigation item */
+.menu li a.active,
+.menu li a:active {
+  background-color: hsl(var(--p));
+  color: hsl(var(--pc));
+}
+
+/* Smooth transitions */
+.menu li a {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Ensure sidebar is always visible on desktop */
+@media (min-width: 1024px) {
+  .finance-sidebar {
+    display: block !important;
+  }
+}
+
+/* Mobile-specific sidebar improvements */
+@media (max-width: 1023px) {
+  /* Mobile drawer improvements */
+  .drawer-toggle:checked ~ .drawer-content .navbar {
+    background-color: hsl(var(--b1));
+  }
+  
+  .drawer-side {
+    z-index: 999;
+  }
+  
+  .drawer-overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+  }
+  
+  /* Mobile navbar */
+  .mobile-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+  
+  /* Mobile sidebar */
+  .mobile-sidebar {
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Mobile menu items */
+  .mobile-sidebar .menu li a {
+    padding: 0.75rem 1rem;
+    min-height: 44px; /* Touch-friendly */
+    font-size: 0.9rem;
+  }
+  
+  .mobile-sidebar .menu li a i {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  
+  /* Mobile submenu */
+  .mobile-sidebar .menu ul {
+    margin-left: 1rem;
+    margin-top: 0.5rem;
+  }
+  
+  .mobile-sidebar .menu ul li a {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  /* User info section mobile */
+  .mobile-user-info {
+    padding: 1rem;
+    border-top: 1px solid hsl(var(--bc) / 0.1);
+  }
+  
+  .mobile-user-info .avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .mobile-user-info .user-details {
+    font-size: 0.8rem;
+  }
+}
+
+/* Touch device optimizations */
+@media (pointer: coarse) {
+  .menu li a {
+    min-height: 44px;
+    padding: 0.75rem;
+    touch-action: manipulation;
+  }
+  
+  .btn-circle {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+  
+  /* Larger touch targets for mobile */
+  .drawer-toggle,
+  .menu li a,
+  .dropdown-toggle {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .mobile-sidebar {
+    width: 280px; /* Slightly wider on very small screens */
+  }
+  
+  .mobile-navbar h1 {
+    font-size: 1rem;
+  }
+  
+  .mobile-navbar .btn {
+    padding: 0.5rem;
+  }
+  
+  /* Compact menu items */
+  .mobile-sidebar .menu li a {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .mobile-sidebar .menu li a span {
+    margin-left: 0.5rem;
+  }
+  
+  /* User info compact */
+  .mobile-user-info {
+    padding: 0.75rem;
+  }
+  
+  .mobile-user-info .user-details p {
+    font-size: 0.75rem;
+  }
+}
+
+/* Landscape mobile adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  .mobile-sidebar {
+    width: 240px;
+  }
+  
+  .mobile-sidebar .menu li a {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .mobile-user-info {
+    padding: 0.5rem;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .mobile-sidebar {
+    border-right: 0.5px solid hsl(var(--bc) / 0.1);
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .mobile-navbar {
+    background-color: rgba(0, 0, 0, 0.95);
+  }
+  
+  .drawer-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Animation improvements for mobile */
+.drawer-side {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drawer-toggle:checked ~ .drawer-side {
+  transform: translateX(0);
+}
+
+/* Menu hover effects - disabled on touch devices */
+@media (hover: hover) {
+  .menu li a:hover {
+    background-color: hsl(var(--bc) / 0.1);
+    transform: translateX(2px);
+  }
+}
+
+/* Focus styles for accessibility */
+.menu li a:focus {
+  outline: 2px solid hsl(var(--p));
+  outline-offset: 2px;
+}
+
+.drawer-toggle:focus + .drawer-content label {
+  outline: 2px solid hsl(var(--p));
+  outline-offset: 2px;
+}
+
+/* Submenu indicators */
+.has-submenu::after {
+  content: '›';
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.submenu-open::after {
+  transform: rotate(90deg);
+}
+
+/* Loading states */
+.menu li a.loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.menu li a.loading::before {
+  content: '';
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
