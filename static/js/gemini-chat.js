@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!document.getElementById('floating-chat-widget')) {
         const floatingChatHTML = `
             <div id="floating-chat-widget" class="floating-chat-widget">
-                <button class="chat-toggle-btn" onclick="toggleFloatingChat()">
+                <button class="chat-toggle-btn tooltip" data-tip="Chat AI" onclick="toggleFloatingChat()">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2L2 7v10c0 5.55 4.45 10 10 10s10-4.45 10-10V7l-10-5z"/>
                         <path d="M12 17l-5-3V9l5-3 5 3v5l-5 3z"/>

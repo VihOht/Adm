@@ -9,7 +9,13 @@
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">
         <h1 class="text-4xl font-bold text-center mb-8">Gemini AI Chat Test</h1>
+
+        <div class="container bg base-100 rounded-lg shadow0lg p-6">
+            <h2 class="text-4m text-center mb-8">You don't have access to AI feature</h2>
+        </div>
+
         
+        {% if user.is_premium %}
         <div class="chat-container bg-base-100 rounded-lg shadow-lg p-6">
             <div id="chat-messages" class="chat-messages mb-4 h-96 overflow-y-auto border rounded-lg p-4 bg-base-200">
                 {% if messages %}
@@ -51,9 +57,12 @@
                 </button>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
+{% if user.has_ai %}
 <script src="{% static 'js/gemini-chat.js' %}"></script>
+{% endif %}
 {% endblock %}
 

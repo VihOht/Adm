@@ -1,10 +1,20 @@
+import csv
 import json
 from datetime import datetime
+from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
+
+try:
+    from openpyxl import Workbook, load_workbook
+    from openpyxl.styles import Font, PatternFill
+
+    EXCEL_AVAILABLE = True
+except ImportError:
+    EXCEL_AVAILABLE = False
 
 from finance_manager.models import ExpenseCategory, Expenses, IncomeCategorys, Incomes
 
@@ -600,7 +610,7 @@ def delete_income(request, income_id):
 
 
 @login_required
-def export_financial_data(request):
+def export_financial_data_json(request):
     """Export user's financial data as JSON file"""
 
     user = request.user
@@ -668,7 +678,242 @@ def export_financial_data(request):
     )
 
     # Set download headers
-    filename = f"financial_data_{user.username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    filename = f"fd_{user.username}_{datetime.now().strftime('%Y_%m_%d')}.json"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    return response
+
+
+@login_required
+def export_financial_data_csv(request):
+    """Export user's financial data as CSV file"""
+    user = request.user
+
+    # Create HTTP response with CSV content
+    response = HttpResponse(content_type="text/csv")
+    filename = f"fd_{user.username}_{datetime.now().strftime('%Y_%m_%d')}.csv"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+
+    # Write header information
+    writer.writerow(["Exported At", "Username"])
+    writer.writerow([datetime.now().isoformat(), user.username])
+    writer.writerow([])  # Empty row for separation
+
+    # Write expense categories
+    writer.writerow(["EXPENSE CATEGORIES"])
+    writer.writerow(["Name", "Description", "Color"])
+    for category in ExpenseCategory.objects.filter(user=user):
+        writer.writerow([category.name, category.description, category.color])
+
+    writer.writerow([])  # Empty row for separation
+
+    # Write income categories
+    writer.writerow(["INCOME CATEGORIES"])
+    writer.writerow(["Name", "Description", "Color"])
+    for category in IncomeCategorys.objects.filter(user=user):
+        writer.writerow([category.name, category.description, category.color])
+
+    writer.writerow([])  # Empty row for separation
+
+    # Write expenses
+    writer.writerow(["EXPENSES"])
+    writer.writerow(
+        [
+            "Category",
+            "Date",
+            "Description",
+            "Detailed Description",
+            "Amount (cents)",
+            "Created At",
+        ]
+    )
+    for expense in Expenses.objects.filter(user=user).order_by("-spent_at"):
+        writer.writerow(
+            [
+                expense.category.name if expense.category else "",
+                expense.spent_at.strftime("%Y-%m-%d"),
+                expense.description,
+                expense.detailed_description,
+                expense.amount,
+                expense.created_at.isoformat(),
+            ]
+        )
+
+    writer.writerow([])  # Empty row for separation
+
+    # Write incomes
+    writer.writerow(["INCOMES"])
+    writer.writerow(
+        [
+            "Category",
+            "Date",
+            "Description",
+            "Detailed Description",
+            "Amount (cents)",
+            "Created At",
+        ]
+    )
+    for income in Incomes.objects.filter(user=user).order_by("-received_at"):
+        writer.writerow(
+            [
+                income.category.name if income.category else "",
+                income.received_at.strftime("%Y-%m-%d"),
+                income.description,
+                income.detailed_description,
+                income.amount,
+                income.created_at.isoformat(),
+            ]
+        )
+
+    return response
+
+
+@login_required
+def export_financial_data_excel(request):
+    """Export user's financial data as Excel file"""
+    if not EXCEL_AVAILABLE:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Excel export não disponível. Instale openpyxl: pip install openpyxl",
+            }
+        )
+
+    user = request.user
+
+    # Create workbook and worksheets
+    wb = Workbook()
+
+    # Remove default worksheet
+    wb.remove(wb.active)
+
+    # Create worksheets
+    info_ws = wb.create_sheet("Info")
+    exp_cat_ws = wb.create_sheet("Expense Categories")
+    inc_cat_ws = wb.create_sheet("Income Categories")
+    expenses_ws = wb.create_sheet("Expenses")
+    incomes_ws = wb.create_sheet("Incomes")
+
+    # Style definitions
+    header_font = Font(bold=True)
+    header_fill = PatternFill(
+        start_color="CCCCCC", end_color="CCCCCC", fill_type="solid"
+    )
+
+    # Info worksheet
+    info_ws["A1"] = "Export Information"
+    info_ws["A1"].font = header_font
+    info_ws["A1"].fill = header_fill
+    info_ws["A2"] = "Exported At:"
+    info_ws["B2"] = datetime.now().isoformat()
+    info_ws["A3"] = "Username:"
+    info_ws["B3"] = user.username
+
+    # Expense Categories worksheet
+    exp_cat_headers = ["Name", "Description", "Color"]
+    for col, header in enumerate(exp_cat_headers, 1):
+        cell = exp_cat_ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+
+    for row, category in enumerate(ExpenseCategory.objects.filter(user=user), 2):
+        exp_cat_ws.cell(row=row, column=1, value=category.name)
+        exp_cat_ws.cell(row=row, column=2, value=category.description)
+        exp_cat_ws.cell(row=row, column=3, value=category.color)
+
+    # Income Categories worksheet
+    inc_cat_headers = ["Name", "Description", "Color"]
+    for col, header in enumerate(inc_cat_headers, 1):
+        cell = inc_cat_ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+
+    for row, category in enumerate(IncomeCategorys.objects.filter(user=user), 2):
+        inc_cat_ws.cell(row=row, column=1, value=category.name)
+        inc_cat_ws.cell(row=row, column=2, value=category.description)
+        inc_cat_ws.cell(row=row, column=3, value=category.color)
+
+    # Expenses worksheet
+    exp_headers = [
+        "Category",
+        "Date",
+        "Description",
+        "Detailed Description",
+        "Amount (cents)",
+        "Created At",
+    ]
+    for col, header in enumerate(exp_headers, 1):
+        cell = expenses_ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+
+    for row, expense in enumerate(
+        Expenses.objects.filter(user=user).order_by("-spent_at"), 2
+    ):
+        expenses_ws.cell(
+            row=row, column=1, value=expense.category.name if expense.category else ""
+        )
+        expenses_ws.cell(row=row, column=2, value=expense.spent_at.strftime("%Y-%m-%d"))
+        expenses_ws.cell(row=row, column=3, value=expense.description)
+        expenses_ws.cell(row=row, column=4, value=expense.detailed_description)
+        expenses_ws.cell(row=row, column=5, value=expense.amount)
+        expenses_ws.cell(row=row, column=6, value=expense.created_at.isoformat())
+
+    # Incomes worksheet
+    inc_headers = [
+        "Category",
+        "Date",
+        "Description",
+        "Detailed Description",
+        "Amount (cents)",
+        "Created At",
+    ]
+    for col, header in enumerate(inc_headers, 1):
+        cell = incomes_ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+
+    for row, income in enumerate(
+        Incomes.objects.filter(user=user).order_by("-received_at"), 2
+    ):
+        incomes_ws.cell(
+            row=row, column=1, value=income.category.name if income.category else ""
+        )
+        incomes_ws.cell(
+            row=row, column=2, value=income.received_at.strftime("%Y-%m-%d")
+        )
+        incomes_ws.cell(row=row, column=3, value=income.description)
+        incomes_ws.cell(row=row, column=4, value=income.detailed_description)
+        incomes_ws.cell(row=row, column=5, value=income.amount)
+        incomes_ws.cell(row=row, column=6, value=income.created_at.isoformat())
+
+    # Auto-adjust column widths
+    for ws in [info_ws, exp_cat_ws, inc_cat_ws, expenses_ws, incomes_ws]:
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+
+    # Save to BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Create HTTP response
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    filename = f"fd_{user.username}_{datetime.now().strftime('%Y_%m_%d')}.xlsx"
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     return response
@@ -677,7 +922,7 @@ def export_financial_data(request):
 @login_required
 @require_POST
 def import_financial_data(request):
-    """Import user's financial data from uploaded JSON file"""
+    """Unified import function that handles JSON, CSV, and Excel files"""
     try:
         # Check if file was uploaded
         if "file" not in request.FILES:
@@ -686,12 +931,7 @@ def import_financial_data(request):
             )
 
         uploaded_file = request.FILES["file"]
-
-        # Validate file type
-        if not uploaded_file.name.endswith(".json"):
-            return JsonResponse(
-                {"success": False, "message": "Apenas arquivos JSON são permitidos."}
-            )
+        filename = uploaded_file.name.lower()
 
         # Check file size (limit to 10MB)
         if uploaded_file.size > 10 * 1024 * 1024:
@@ -702,179 +942,439 @@ def import_financial_data(request):
                 }
             )
 
-        # Read and parse JSON
-        try:
-            file_content = uploaded_file.read().decode("utf-8")
-            data = json.loads(file_content)
-        except json.JSONDecodeError:
-            return JsonResponse({"success": False, "message": "Arquivo JSON inválido."})
-        except UnicodeDecodeError:
+        # Route to appropriate handler based on file extension
+        if filename.endswith(".json"):
+            return _import_json_data(uploaded_file, request)
+        elif filename.endswith(".csv"):
+            return _import_csv_data(uploaded_file, request)
+        elif filename.endswith((".xlsx", ".xls")):
+            return _import_excel_data(uploaded_file, request)
+        else:
             return JsonResponse(
                 {
                     "success": False,
-                    "message": "Codificação do arquivo inválida. Use UTF-8.",
+                    "message": "Formato de arquivo não suportado. Use JSON, CSV ou Excel (.xlsx, .xls).",
                 }
             )
-
-        # Validate JSON structure
-        required_fields = [
-            "expense_categories",
-            "income_categories",
-            "expenses",
-            "incomes",
-        ]
-        for field in required_fields:
-            if field not in data:
-                return JsonResponse(
-                    {"success": False, "message": f"Campo obrigatório ausente: {field}"}
-                )
-
-        user = request.user
-        clear_data = request.POST.get("clear_existing", "false").lower() == "true"
-
-        # Import data using transaction for atomicity
-        from django.db import transaction
-
-        with transaction.atomic():
-            if clear_data:
-                # Clear existing data
-                Expenses.objects.filter(user=user).delete()
-                Incomes.objects.filter(user=user).delete()
-                ExpenseCategory.objects.filter(user=user).delete()
-                IncomeCategorys.objects.filter(user=user).delete()
-
-            # Import expense categories
-            expense_categories = {}
-            categories_created = 0
-            for cat_data in data.get("expense_categories", []):
-                if not cat_data.get("name"):
-                    continue
-
-                category, created = ExpenseCategory.objects.get_or_create(
-                    user=user,
-                    name=cat_data["name"],
-                    defaults={
-                        "description": cat_data.get("description", ""),
-                        "color": cat_data.get("color", "#FFFFFF"),
-                    },
-                )
-                expense_categories[cat_data["name"]] = category
-                if created:
-                    categories_created += 1
-
-            # Import income categories
-            income_categories = {}
-            income_categories_created = 0
-            for cat_data in data.get("income_categories", []):
-                if not cat_data.get("name"):
-                    continue
-
-                category, created = IncomeCategorys.objects.get_or_create(
-                    user=user,
-                    name=cat_data["name"],
-                    defaults={
-                        "description": cat_data.get("description", ""),
-                        "color": cat_data.get("color", "#FFFFFF"),
-                    },
-                )
-                income_categories[cat_data["name"]] = category
-                if created:
-                    income_categories_created += 1
-
-            # Import expenses
-            expenses_created = 0
-            expenses_skipped = 0
-            for expense_data in data.get("expenses", []):
-                try:
-                    category = None
-                    if expense_data.get("category"):
-                        category = expense_categories.get(expense_data["category"])
-
-                    spent_at = datetime.strptime(
-                        expense_data["spent_at"], "%Y-%m-%d"
-                    ).date()
-
-                    Expenses.objects.create(
-                        user=user,
-                        category=category,
-                        spent_at=spent_at,
-                        description=expense_data.get("description", ""),
-                        detailed_description=expense_data.get(
-                            "detailed_description", ""
-                        ),
-                        amount=int(expense_data.get("amount", 0)),
-                    )
-                    expenses_created += 1
-                except (ValueError, KeyError, TypeError):
-                    expenses_skipped += 1
-                    continue
-
-            # Import incomes
-            incomes_created = 0
-            incomes_skipped = 0
-            for income_data in data.get("incomes", []):
-                try:
-                    category = None
-                    if income_data.get("category"):
-                        category = income_categories.get(income_data["category"])
-
-                    received_at = datetime.strptime(
-                        income_data["received_at"], "%Y-%m-%d"
-                    ).date()
-
-                    Incomes.objects.create(
-                        user=user,
-                        category=category,
-                        received_at=received_at,
-                        description=income_data.get("description", ""),
-                        detailed_description=income_data.get(
-                            "detailed_description", ""
-                        ),
-                        amount=int(income_data.get("amount", 0)),
-                    )
-                    incomes_created += 1
-                except (ValueError, KeyError, TypeError):
-                    incomes_skipped += 1
-                    continue
-
-        # Prepare success message
-        total_created = (
-            categories_created
-            + income_categories_created
-            + expenses_created
-            + incomes_created
-        )
-        total_skipped = expenses_skipped + incomes_skipped
-
-        message_parts = [
-            "Importação concluída com sucesso!",
-            f"✅ {categories_created} categorias de gastos",
-            f"✅ {income_categories_created} categorias de receitas",
-            f"✅ {expenses_created} gastos",
-            f"✅ {incomes_created} receitas",
-        ]
-
-        if total_skipped > 0:
-            message_parts.append(
-                f"⚠️ {total_skipped} registros ignorados por dados inválidos"
-            )
-
-        return JsonResponse(
-            {
-                "success": True,
-                "message": "\n".join(message_parts),
-                "stats": {
-                    "expense_categories": categories_created,
-                    "income_categories": income_categories_created,
-                    "expenses": expenses_created,
-                    "incomes": incomes_created,
-                    "total_created": total_created,
-                    "total_skipped": total_skipped,
-                },
-            }
-        )
 
     except Exception as e:
         return JsonResponse(
             {"success": False, "message": f"Erro durante a importação: {str(e)}"}
         )
+
+
+def _import_json_data(uploaded_file, request):
+    """Handle JSON file import"""
+    try:
+        for i in range(20):
+            print("_")
+        file_content = uploaded_file.read().decode("utf-8")
+        data = json.loads(file_content)
+    except json.JSONDecodeError as e:
+        return JsonResponse(
+            {"success": False, "message": f"Arquivo JSON inválido. Erro: {str(e)}"}
+        )
+    except UnicodeDecodeError:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Codificação do arquivo inválida. Use UTF-8.",
+            }
+        )
+
+    # Validate that data is a dictionary
+    if not isinstance(data, dict):
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Formato JSON inválido. O arquivo deve conter um objeto JSON.",
+            }
+        )
+
+    # Create default structure if fields are missing
+    required_fields = [
+        "expense_categories",
+        "income_categories",
+        "expenses",
+        "incomes",
+    ]
+
+    # Initialize missing fields with empty lists
+    for field in required_fields:
+        if field not in data:
+            data[field] = []
+
+    # Validate that required fields are lists
+    for field in required_fields:
+        if not isinstance(data[field], list):
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": f"Campo '{field}' deve ser uma lista no arquivo JSON.",
+                }
+            )
+
+    user = request.user
+    clear_data = request.POST.get("clear_existing", "false").lower() == "true"
+
+    return _process_import_data(data, user, clear_data)
+
+
+def _import_csv_data(uploaded_file, request):
+    """Handle CSV file import"""
+    try:
+        file_content = uploaded_file.read().decode("utf-8")
+        csv_reader = csv.reader(file_content.splitlines())
+        rows = list(csv_reader)
+    except UnicodeDecodeError:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Codificação do arquivo inválida. Use UTF-8.",
+            }
+        )
+
+    if len(rows) < 5:
+        return JsonResponse(
+            {"success": False, "message": "Arquivo CSV muito pequeno ou inválido."}
+        )
+
+    user = request.user
+    clear_data = request.POST.get("clear_existing", "false").lower() == "true"
+
+    # Parse CSV structure
+    data = {
+        "expense_categories": [],
+        "income_categories": [],
+        "expenses": [],
+        "incomes": [],
+    }
+
+    current_section = None
+    headers = []
+
+    for row in rows:
+        if not row or not any(row):  # Skip empty rows
+            continue
+
+        # Check for section headers
+        if len(row) >= 1:
+            if row[0] == "EXPENSE CATEGORIES":
+                current_section = "expense_categories"
+                continue
+            elif row[0] == "INCOME CATEGORIES":
+                current_section = "income_categories"
+                continue
+            elif row[0] == "EXPENSES":
+                current_section = "expenses"
+                continue
+            elif row[0] == "INCOMES":
+                current_section = "incomes"
+                continue
+
+            # Check for headers row
+            if current_section and row[0] in ["Name", "Category"]:
+                headers = row
+                continue
+
+        # Process data rows
+        if current_section and headers and len(row) >= len(headers):
+            row_data = dict(zip(headers, row))
+
+            if current_section == "expense_categories":
+                data["expense_categories"].append(
+                    {
+                        "name": row_data.get("Name", ""),
+                        "description": row_data.get("Description", ""),
+                        "color": row_data.get("Color", "#FFFFFF"),
+                    }
+                )
+            elif current_section == "income_categories":
+                data["income_categories"].append(
+                    {
+                        "name": row_data.get("Name", ""),
+                        "description": row_data.get("Description", ""),
+                        "color": row_data.get("Color", "#FFFFFF"),
+                    }
+                )
+            elif current_section == "expenses":
+                data["expenses"].append(
+                    {
+                        "category": row_data.get("Category", ""),
+                        "spent_at": row_data.get("Date", ""),
+                        "description": row_data.get("Description", ""),
+                        "detailed_description": row_data.get(
+                            "Detailed Description", ""
+                        ),
+                        "amount": int(row_data.get("Amount (cents)", "0"))
+                        if row_data.get("Amount (cents)", "").isdigit()
+                        else 0,
+                    }
+                )
+            elif current_section == "incomes":
+                data["incomes"].append(
+                    {
+                        "category": row_data.get("Category", ""),
+                        "received_at": row_data.get("Date", ""),
+                        "description": row_data.get("Description", ""),
+                        "detailed_description": row_data.get(
+                            "Detailed Description", ""
+                        ),
+                        "amount": int(row_data.get("Amount (cents)", "0"))
+                        if row_data.get("Amount (cents)", "").isdigit()
+                        else 0,
+                    }
+                )
+
+    return _process_import_data(data, user, clear_data)
+
+
+def _import_excel_data(uploaded_file, request):
+    """Handle Excel file import"""
+    if not EXCEL_AVAILABLE:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Importação Excel não disponível. Instale openpyxl: pip install openpyxl",
+            }
+        )
+
+    try:
+        wb = load_workbook(uploaded_file, read_only=True)
+    except Exception:
+        return JsonResponse(
+            {"success": False, "message": "Arquivo Excel inválido ou corrompido."}
+        )
+
+    user = request.user
+    clear_data = request.POST.get("clear_existing", "false").lower() == "true"
+
+    # Parse Excel structure
+    data = {
+        "expense_categories": [],
+        "income_categories": [],
+        "expenses": [],
+        "incomes": [],
+    }
+
+    # Process each worksheet
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+
+        if sheet_name == "Expense Categories":
+            # Skip header row
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row and row[0]:  # Check if first column has data
+                    data["expense_categories"].append(
+                        {
+                            "name": str(row[0]) if row[0] else "",
+                            "description": str(row[1]) if row[1] else "",
+                            "color": str(row[2]) if row[2] else "#FFFFFF",
+                        }
+                    )
+
+        elif sheet_name == "Income Categories":
+            # Skip header row
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row and row[0]:  # Check if first column has data
+                    data["income_categories"].append(
+                        {
+                            "name": str(row[0]) if row[0] else "",
+                            "description": str(row[1]) if row[1] else "",
+                            "color": str(row[2]) if row[2] else "#FFFFFF",
+                        }
+                    )
+
+        elif sheet_name == "Expenses":
+            # Skip header row
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row and row[1]:  # Check if date column has data
+                    try:
+                        # Handle date formatting
+                        date_value = row[1]
+                        if hasattr(date_value, "strftime"):
+                            date_str = date_value.strftime("%Y-%m-%d")
+                        else:
+                            date_str = str(date_value)
+
+                        data["expenses"].append(
+                            {
+                                "category": str(row[0]) if row[0] else "",
+                                "spent_at": date_str,
+                                "description": str(row[2]) if row[2] else "",
+                                "detailed_description": str(row[3]) if row[3] else "",
+                                "amount": int(row[4])
+                                if row[4] and str(row[4]).replace(".", "").isdigit()
+                                else 0,
+                            }
+                        )
+                    except (ValueError, IndexError):
+                        continue
+
+        elif sheet_name == "Incomes":
+            # Skip header row
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row and row[1]:  # Check if date column has data
+                    try:
+                        # Handle date formatting
+                        date_value = row[1]
+                        if hasattr(date_value, "strftime"):
+                            date_str = date_value.strftime("%Y-%m-%d")
+                        else:
+                            date_str = str(date_value)
+
+                        data["incomes"].append(
+                            {
+                                "category": str(row[0]) if row[0] else "",
+                                "received_at": date_str,
+                                "description": str(row[2]) if row[2] else "",
+                                "detailed_description": str(row[3]) if row[3] else "",
+                                "amount": int(row[4])
+                                if row[4] and str(row[4]).replace(".", "").isdigit()
+                                else 0,
+                            }
+                        )
+                    except (ValueError, IndexError):
+                        continue
+
+    return _process_import_data(data, user, clear_data)
+
+
+def _process_import_data(data, user, clear_data):
+    """Shared logic for processing import data from any format"""
+    from django.db import transaction
+
+    with transaction.atomic():
+        if clear_data:
+            # Clear existing data
+            Expenses.objects.filter(user=user).delete()
+            Incomes.objects.filter(user=user).delete()
+            ExpenseCategory.objects.filter(user=user).delete()
+            IncomeCategorys.objects.filter(user=user).delete()
+
+        # Import expense categories
+        expense_categories = {}
+        categories_created = 0
+        for cat_data in data.get("expense_categories", []):
+            if not cat_data.get("name"):
+                continue
+
+            category, created = ExpenseCategory.objects.get_or_create(
+                user=user,
+                name=cat_data["name"],
+                defaults={
+                    "description": cat_data.get("description", ""),
+                    "color": cat_data.get("color", "#FFFFFF"),
+                },
+            )
+            expense_categories[cat_data["name"]] = category
+            if created:
+                categories_created += 1
+
+        # Import income categories
+        income_categories = {}
+        income_categories_created = 0
+        for cat_data in data.get("income_categories", []):
+            if not cat_data.get("name"):
+                continue
+
+            category, created = IncomeCategorys.objects.get_or_create(
+                user=user,
+                name=cat_data["name"],
+                defaults={
+                    "description": cat_data.get("description", ""),
+                    "color": cat_data.get("color", "#FFFFFF"),
+                },
+            )
+            income_categories[cat_data["name"]] = category
+            if created:
+                income_categories_created += 1
+
+        # Import expenses
+        expenses_created = 0
+        expenses_skipped = 0
+        for expense_data in data.get("expenses", []):
+            try:
+                category = None
+                if expense_data.get("category"):
+                    category = expense_categories.get(expense_data["category"])
+
+                spent_at = datetime.strptime(
+                    expense_data["spent_at"], "%Y-%m-%d"
+                ).date()
+
+                Expenses.objects.create(
+                    user=user,
+                    category=category,
+                    spent_at=spent_at,
+                    description=expense_data.get("description", ""),
+                    detailed_description=expense_data.get("detailed_description", ""),
+                    amount=int(expense_data.get("amount", 0)),
+                )
+                expenses_created += 1
+            except (ValueError, KeyError, TypeError):
+                expenses_skipped += 1
+                continue
+
+        # Import incomes
+        incomes_created = 0
+        incomes_skipped = 0
+        for income_data in data.get("incomes", []):
+            try:
+                category = None
+                if income_data.get("category"):
+                    category = income_categories.get(income_data["category"])
+
+                received_at = datetime.strptime(
+                    income_data["received_at"], "%Y-%m-%d"
+                ).date()
+
+                Incomes.objects.create(
+                    user=user,
+                    category=category,
+                    received_at=received_at,
+                    description=income_data.get("description", ""),
+                    detailed_description=income_data.get("detailed_description", ""),
+                    amount=int(income_data.get("amount", 0)),
+                )
+                incomes_created += 1
+            except (ValueError, KeyError, TypeError):
+                incomes_skipped += 1
+                continue
+
+    # Prepare success message
+    total_created = (
+        categories_created
+        + income_categories_created
+        + expenses_created
+        + incomes_created
+    )
+    total_skipped = expenses_skipped + incomes_skipped
+
+    message_parts = [
+        "Importação concluída com sucesso!",
+        f"✅ {categories_created} categorias de gastos",
+        f"✅ {income_categories_created} categorias de receitas",
+        f"✅ {expenses_created} gastos",
+        f"✅ {incomes_created} receitas",
+    ]
+
+    if total_skipped > 0:
+        message_parts.append(
+            f"⚠️ {total_skipped} registros ignorados por dados inválidos"
+        )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "message": "\n".join(message_parts),
+            "stats": {
+                "expense_categories": categories_created,
+                "income_categories": income_categories_created,
+                "expenses": expenses_created,
+                "incomes": incomes_created,
+                "total_created": total_created,
+                "total_skipped": total_skipped,
+            },
+        }
+    )

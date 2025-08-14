@@ -25,6 +25,7 @@ class User(AbstractUser):
         blank=True,
         help_text="Upload a profile image (max 5MB, JPG/PNG)",
     )
+    is_premium = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

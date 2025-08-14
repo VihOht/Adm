@@ -1,22 +1,37 @@
-Colocar no padrão de gastos diarios, limitar os dias aos dias ativos e mês atual
-Adicionar ferramenta de pesquisa google
-Consertar o Toast message
-Orfélio — 2:55 PM
-robson.santosfranca.ismart@gmail.com
-Ohtto123*
-Criar classe de Usuária
-Orfélio — 3:07 PM
-Adicionar simbolo do site
+Implementar botões na area de recentes:
+imagino um bot redondo com um sinal de + dentro, bot branco/cinza com borda preta lovcalizado no mesmo nível do título Gastos Recentes mas no canto direito
+!!IMPLEMENTED
 
+Adicionar um texto no botão de abrir o chat IA:
+17 - talvez aparecer um texto quando passar o mouse por cima, tipo: chat ou IA
+!!IMPLEMENTED
 
-Seraphim:
-Adicionar uma visualização de calendário, onde teria um calendário que com um hover você consegue as informações resumidas do dia, e clicando você acessa todos as transferencias daquele dia, o dia no grafìco tem que ter uma barrinha indicando se teve alguma transferencia no dia, verde para saldo positivo, vermelho para saldo negativo.
+Adicionar o texto como o no site do Chat GPT:
+15 - talvez se aparecesse semelhante ao gpt já estaria bem melhor
 
-Adicionar um fluxo de conversa para a ia
+Colocar filtros nos gráficos para envitar muitas informações:
+19 - era sobre os gráficos, colocar filtros
 
-Adicionar legendas ao gráficos
-Remover as informações quando a porcentagem é muito pequena
+Adicionar meta de gastos na visualização de calendário
+ai que tal colocar uma meta de gastos por dia ou por mês, ai sim compara se o dia foi negativo ou positivo
 
-Remover Nome e Sobrenome
+Mudar a legenda dos Saldos no Dashboard para "Saldo Atual"
+21 - Justo, mudar a legenda do dashboard para "Saldo Atual"
 
-Acicionar sistema para dar zoom no gráfico
+Adicionar uma confirmação no download dos dados (Exportação)
+Seria interessante mostrar uma prévia antes e confirmar se deseja realmente baixar
+
+Adicionar opções de moedas e conversões semi automáticas
+Daria para selecionar a moeda ? Tipo, se quisesse utilizar pra controlar os meus gastos em Minverva, teria que colocar em dolar
+Ah, Configuração de moeda atual, configuração de moeda nos gastos e cambio em tempo real
+
+Sistemas de leitura de planilhas e svc
+Sistema de analise de dados com planilhas de exel ou svc implementado com leitura do texto e formatação por IA
+
+Adicionar sistema de reservas de dinheiro, excluido-os da porção do saldo. !!!IMPORTANTE
+outra coisa que pensei agora: da pra tirar uma x porcentagem da receita e colocar imediatamente em um campo de receita ?
+
+FUTURO DO FUTURO
+Sistema de débito automático:
+7 - acho que poderia adicionar, mas so quando chegasse o dia que emitia uma confirmação e ai sim adicionava ou tirava da conta e dos cálculos
+

@@ -971,12 +971,17 @@ function handleFileSelect(event) {
     return;
   }
 
-  // Validate file type
-  if (!file.name.toLowerCase().endsWith(".json")) {
+  const fileName = file.name.toLowerCase();
+  
+  // Validate file type - unified check
+  const validExtensions = ['.json', '.csv', '.xlsx', '.xls'];
+  const isValidFile = validExtensions.some(ext => fileName.endsWith(ext));
+  
+  if (!isValidFile) {
     if (typeof toastError !== "undefined") {
-      toastError("Apenas arquivos JSON são permitidos");
+      toastError("Apenas arquivos JSON, CSV e Excel são permitidos");
     } else {
-      alert("Apenas arquivos JSON são permitidos");
+      alert("Apenas arquivos JSON, CSV e Excel são permitidos");
     }
     event.target.value = "";
     return;
@@ -995,68 +1000,67 @@ function handleFileSelect(event) {
 
   selectedFile = file;
   
-  // Show file info
+  // Show file info with detected file type
   const fileInfo = document.getElementById("file-info");
   const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+  
+  let fileType;
+  if (fileName.endsWith(".json")) {
+    fileType = "JSON";
+  } else if (fileName.endsWith(".csv")) {
+    fileType = "CSV";
+  } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+    fileType = "Excel";
+  }
+  
   fileInfo.innerHTML = `
     <div class="flex items-center space-x-2">
       <i data-lucide="file-text" class="w-4 h-4 text-green-600"></i>
-      <span><strong>${file.name}</strong> (${fileSizeMB} MB)</span>
+      <span><strong>${file.name}</strong> (${fileSizeMB} MB) - ${fileType}</span>
     </div>
   `;
   fileInfo.classList.remove("hidden");
 
-  // Parse and preview file
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = JSON.parse(e.target.result);
-      showImportPreview(data);
-      document.getElementById("import-btn").disabled = false;
-    } catch (error) {
-      if (typeof toastError !== "undefined") {
-        toastError("Arquivo JSON inválido");
-      } else {
-        alert("Arquivo JSON inválido");
+  // For JSON files, parse and preview
+  if (fileName.endsWith(".json")) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        showImportPreview(data);
+        document.getElementById("import-btn").disabled = false;
+      } catch (error) {
+        if (typeof toastError !== "undefined") {
+          toastError("Arquivo JSON inválido" + (e));
+        } else {
+          alert("Arquivo JSON inválido");
+        }
+        resetImportModal();
       }
-      resetImportModal();
-    }
-  };
-  reader.readAsText(file);
+    };
+    reader.readAsText(file);
+  } else {
+    // For CSV and Excel files, show generic preview
+    showGenericPreview(fileType);
+    document.getElementById("import-btn").disabled = false;
+  }
 }
 
-function showImportPreview(data) {
+function showGenericPreview(fileType) {
   const preview = document.getElementById("import-preview");
   const content = document.getElementById("preview-content");
   
-  const expenseCategories = data.expense_categories ? data.expense_categories.length : 0;
-  const incomeCategories = data.income_categories ? data.income_categories.length : 0;
-  const expenses = data.expenses ? data.expenses.length : 0;
-  const incomes = data.incomes ? data.incomes.length : 0;
-  const totalRecords = expenseCategories + incomeCategories + expenses + incomes;
-
   content.innerHTML = `
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <div class="text-gray-600">Categorias de Gastos:</div>
-        <div class="font-semibold">${expenseCategories}</div>
+    <div class="text-center">
+      <div class="text-lg font-semibold mb-2">Arquivo ${fileType} selecionado</div>
+      <p class="text-gray-600">
+        O arquivo será processado durante a importação. 
+        Certifique-se de que está no formato correto exportado por este sistema.
+      </p>
+      <div class="mt-3 text-sm text-gray-500">
+        <strong>Formato esperado:</strong><br>
+        ${fileType === "CSV" ? "CSV com seções separadas para categorias, gastos e receitas" : "Excel com abas separadas para cada tipo de dados"}
       </div>
-      <div>
-        <div class="text-gray-600">Categorias de Receitas:</div>
-        <div class="font-semibold">${incomeCategories}</div>
-      </div>
-      <div>
-        <div class="text-gray-600">Gastos:</div>
-        <div class="font-semibold">${expenses}</div>
-      </div>
-      <div>
-        <div class="text-gray-600">Receitas:</div>
-        <div class="font-semibold">${incomes}</div>
-      </div>
-    </div>
-    <div class="mt-3 pt-3 border-t border-gray-300">
-      <div class="text-gray-600">Total de registros:</div>
-      <div class="font-bold text-lg">${totalRecords}</div>
     </div>
   `;
   
@@ -1073,6 +1077,9 @@ async function submitImport() {
     return;
   }
 
+  // Use unified import URL - no need to check file type
+  const importUrl = window.importDataUrl;
+
   // Show progress
   document.getElementById("import-progress").classList.remove("hidden");
   document.getElementById("import-btn").disabled = true;
@@ -1083,7 +1090,7 @@ async function submitImport() {
     formData.append("clear_existing", document.getElementById("clear-existing").checked);
     formData.append("csrfmiddlewaretoken", window.csrfToken);
 
-    const response = await fetch(window.importDataUrl, {
+    const response = await fetch(importUrl, {
       method: "POST",
       body: formData,
       headers: {
@@ -1127,4 +1134,63 @@ async function submitImport() {
       alert("Erro ao conectar com o servidor");
     }
   }
+}
+
+// Export Modal Functions
+function openExportModal() {
+    document.getElementById('exportModal').classList.add('modal-open');
+    // Reset to JSON as default
+    document.querySelector('input[name="export-format"][value="json"]').checked = true;
+}
+
+function closeExportModal() {
+    document.getElementById('exportModal').classList.remove('modal-open');
+}
+
+function executeExport() {
+    const selectedFormat = document.querySelector('input[name="export-format"]:checked').value;
+    
+    let exportUrl;
+    switch(selectedFormat) {
+        case 'csv':
+            exportUrl = window.exportDataCsvUrl;
+            break;
+        case 'excel':
+            exportUrl = window.exportDataExcelUrl;
+            break;
+        case 'json':
+        default:
+            exportUrl = window.exportDataJsonUrl;
+            break;
+    }
+    
+    // Show loading state
+    const exportBtn = document.querySelector('#exportModal .btn-primary');
+    const originalText = exportBtn.innerHTML;
+    exportBtn.innerHTML = '<span class="loading loading-spinner loading-sm mr-2"></span>Exportando...';
+    exportBtn.disabled = true;
+    
+    // Create a temporary link to trigger download
+    const link = document.createElement('a');
+    link.href = exportUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Reset button state after a short delay
+    setTimeout(() => {
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+        closeExportModal();
+        
+        // Show success message
+        showAlert('Arquivo exportado com sucesso!', 'success');
+    }, 1000);
+}
+
+// Remove the old exportData function if it exists and replace with this
+function exportData(format) {
+    // This function is deprecated, use the modal instead
+    openExportModal();
 }

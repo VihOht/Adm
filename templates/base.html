@@ -54,7 +54,9 @@
     
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="text/javascript" src="{% static 'js/toast_message.js' %}"></script>
+    {% if user.is_premium %}
     <script src="{% static 'js/gemini-chat.js' %}"></script>
+    {% endif %}
     <script>
       lucide.createIcons()
     </script>

@@ -38,6 +38,18 @@ urlpatterns = [
         name="delete_income_category",
     ),
     # Data export/import URLs
-    path("export/", views.export_financial_data, name="export_data"),
     path("import/", views.import_financial_data, name="import_data"),
+    path(
+        "export/json/",
+        views.export_financial_data_json,
+        name="export_financial_data_json",
+    ),
+    path(
+        "export/csv/", views.export_financial_data_csv, name="export_financial_data_csv"
+    ),
+    path(
+        "export/excel/",
+        views.export_financial_data_excel,
+        name="export_financial_data_excel",
+    ),
 ]
