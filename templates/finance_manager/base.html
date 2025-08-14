@@ -59,7 +59,7 @@
       }
     }
 
-    console.log(is_active3)
+   
 
     for(var j = 0; j < 2; j++){
       if (is_active1){
@@ -69,13 +69,11 @@
       if (is_active2){
         actual = side_list[j].children[1].children[1]
         actual = actual.children[0].children[0]
-        console.log(actual)
         actual.classList.add("bg-secondary", "text-secondary-content")
       };
       if (is_active3){
         actual = side_list[j].children[1].children[1]
         actual = actual.children[1].children[0]
-        console.log(actual)
         actual.classList.add("bg-secondary", "text-secondary-content")
       };
     }

@@ -92,8 +92,6 @@ def day_transactions_ajax(request):
     if not day_data:
         return JsonResponse({"error": "Day not found"}, status=404)
 
-    print(date)
-
     return JsonResponse(
         {
             "date": date,
