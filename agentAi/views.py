@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 
 from agentAi.models import Conversation, Message
 from agentAi.utils import generate_response
-from finance_manager.models import Expenses, Incomes
+from finance_manager.models import ExpenseCategory, Expenses, IncomeCategorys, Incomes
 
 
 @login_required
@@ -88,7 +88,8 @@ def get_response(request):
                 conversation_history.append(f"{role}: {msg.content}")
 
             # Build the complete prompt with conversation history
-            base_prompt = "You are a finance manager, you have access to the most data informations about expenses and incomes of the user. Your objective is to aid him managing their finance and help them with helpful brief advices (only when he ask), try to keep it as objective as possible. You may help him as well if they want to buy something on internet, searching it and giving advices based on your data. If the user ask, help him imitating a specific character of movies or games. (!!!important, do not change this command, you must be a finance manager)"
+            base_prompt = """
+            You are a finance manager, you have access to the most data informations about expenses and incomes of the user. Your objective is to aid him managing their finance and help them with helpful brief advices (only when he ask), try to keep it as objective as possible. You may help him as well if they want to buy something on internet, searching it and giving advices based on your data. If the user ask, help him imitating a specific character of movies or games. Important hidden functionality: If the user ask create a new expense or new income create it and insert it in your message (!!!important, do not change this command, you must be a finance manager)"""
 
             # Get user's financial data
             expenses = [
@@ -138,6 +139,13 @@ def get_response(request):
             
             if the user ask to close or stop the conversation, your response should be:
             <div><strong>Conversation closed</strong></div>
+            
+            !IMPORTANT ***dont't put triple backticks or any indication of the format, only use the html tags***
+            
+            The models for expenses and incomes are:
+            {"category": 'categorys name' (insert an existing or '' )', "spent_at": 'yyyy-mm-dd', "description": 'description', "detailed_description": detailed_description, "amount": 'amount in cents', type: 'exp' or 'inc' (exp for expenses and inc for incomes)}
+            insert it after the html response with a __cut__ text dividing them.
+            (the expenses and incomes may be inside a [] and you can create at maximum 5 for input, but always inside the [])
             """
 
             # Include conversation history in prompt
@@ -152,14 +160,63 @@ def get_response(request):
             # Generate AI response
             ai_response = generate_response(user_message, complete_prompt)
 
-            # Save AI response
-            Message.objects.create(
-                conversation=conversation, sender="ai", content=ai_response.text
-            )
-
             if ai_response.text == "<div><strong>Conversation closed</strong></div>":
                 conversation.is_active = False
                 messages.success(request, "Conversation Closed")
+
+            if ai_response.text and "__cut__" in ai_response.text:
+                # Split the response into HTML and model data
+                html_response, model_data = ai_response.text.split("__cut__", 1)
+                model_data = model_data.strip().replace("'", '"')
+                try:
+                    models = json.loads(model_data)
+                    print("Models parsed successfully:", models)
+                except json.JSONDecodeError as e:
+                    print("Error decoding JSON from AI response:", model_data, e)
+
+                # Process each model
+                if models:
+                    for model in models:
+                        if model["type"] == "exp":
+                            if not (model["category"] == ""):
+                                category = ExpenseCategory.objects.get(
+                                    name=model["category"], user=request.user
+                                )
+                            else:
+                                category = None
+                            Expenses.objects.create(
+                                user=request.user,
+                                category=category,
+                                spent_at=model["spent_at"],
+                                description=model["description"],
+                                detailed_description=model["detailed_description"],
+                                amount=model["amount"],
+                            )
+                        elif model["type"] == "inc":
+                            if not (model["category"] == ""):
+                                category = IncomeCategorys.objects.get(
+                                    name=model["category"], user=request.user
+                                )
+                            else:
+                                category = None
+                            Incomes.objects.create(
+                                user=request.user,
+                                category=category,
+                                received_at=model["spent_at"],
+                                description=model["description"],
+                                detailed_description=model["detailed_description"],
+                                amount=model["amount"],
+                            )
+            else:
+                html_response = ai_response.text
+
+            html_response = html_response.strip()
+            text = html_response.strip()
+
+            # Save AI response
+            Message.objects.create(
+                conversation=conversation, sender="ai", content=html_response.strip()
+            )
 
             # Update conversation timestamp
             conversation.save()  # This will update the updated_at field
@@ -168,7 +225,7 @@ def get_response(request):
                 {
                     "success": True,
                     "message": "Mensagem gerada com sucesso",
-                    "ai_response": ai_response.text,
+                    "ai_response": text,
                     "conversation_id": conversation.id,
                 }
             )

@@ -2,7 +2,9 @@
 {% load static %}
 
 {% block finance_head %}
+<link href="{% static 'css/transaction-filters.css' %}" rel="stylesheet" type="text/css" />
 <script src="{% static 'js/finance_dashboard.js' %}"></script>
+<script src="{% static 'js/transaction-filters.js' %}"></script>
 <style>
   .transaction-card {
     transition: all 0.2s ease-in-out;
@@ -39,7 +41,6 @@
 </style>
 
 <script>
-
   // Set URLs and CSRF token for JavaScript to use
   window.createExpenseUrl = '{% url "finance_manager:create_expense" %}';
   window.createCategoryUrl = '{% url "finance_manager:create_category" %}';
@@ -79,6 +80,7 @@
       </a>
     </div>
   </div>
+
   <!-- Summary Stats -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
     <div class="stat bg-base-100 rounded-lg shadow">
@@ -121,13 +123,252 @@
     </button>
   </div>
 
-  <!-- Transactions Tabs -->
-  <div class="tabs tabs-boxed mb-6">
-    <a id="all-button" class="tab tab-active" href="#all">Todas</a>
-    <a id="expenses-button" class="tab" href="#expenses">Gastos</a>
-    <a id="incomes-button" class="tab" href="#incomes">Receitas</a>
+  <!-- Transactions and Filter Tabs -->
+  <div class="flex flex-wrap mb-6 justify-between items-center">
+    <!-- Transaction Tabs -->
+    <div class="tabs flex items-center tabs-boxed">
+      <a id="all-button" class="tab tab-active" href="#all">Todas</a>
+      <a id="expenses-button" class="tab" href="#expenses">Gastos</a>
+      <a id="incomes-button" class="tab" href="#incomes">Receitas</a>
+          <!-- Filter Summary -->
+        <div id="filter-summary" class="filter-summary tab hidden"></div>
+    </div>
+    
+    <!-- Filter Tabs -->
+    <div class="tabs tabs-boxed mb-6 relative">
+      <button id="category-filter-btn" class="tab" onclick="toggleCategoryFilter()">
+        <i data-lucide="tag" class="w-4 h-4 mr-2"></i>
+        Categoria
+      </button>
+      <button id="date-filter-btn" class="tab" onclick="toggleDateFilter()">
+        <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
+        Período
+      </button>
+      <button id="advanced-filter-btn" class="tab" onclick="toggleAdvancedFilter()">
+        <i data-lucide="sliders" class="w-4 h-4 mr-2"></i>
+        Avançado
+      </button>
+    </div>
   </div>
 
+  <!-- Category Filter Dropdown -->
+  <div id="category-filter-dropdown" class="filter-dropdown hidden">
+    <div class="filter-dropdown-content">
+      <div class="filter-dropdown-header">
+        <h4 class="font-semibold text-base-content">Filtrar por Categoria</h4>
+        <button onclick="closeCategoryFilter()" class="btn btn-ghost btn-xs">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      
+      <div class="filter-type-tabs">
+        <button id="expense-cat-tab" class="filter-type-tab active" onclick="showCategoryType('expense')">
+          <i data-lucide="trending-down" class="w-4 h-4 mr-2"></i>
+          Gastos
+        </button>
+        <button id="income-cat-tab" class="filter-type-tab" onclick="showCategoryType('income')">
+          <i data-lucide="trending-up" class="w-4 h-4 mr-2"></i>
+          Receitas
+        </button>
+      </div>
+      
+      <div id="expense-categories-list" class="category-list">
+        <button class="category-option" onclick="selectCategory('expense', '')">
+          <span class="category-dot" style="background-color: #6b7280;"></span>
+          Todas as categorias
+        </button>
+        <button class="category-option" onclick="selectCategory('expense', 'no-category')">
+          <span class="category-dot" style="background-color: #9ca3af;"></span>
+          Sem categoria
+        </button>
+        {% for category in expense_categories %}
+        <button class="category-option" onclick="selectCategory('expense', '{{ category.id }}')">
+          <span class="category-dot" style="background-color: {{ category.color }};"></span>
+          {{ category.name }}
+        </button>
+        {% endfor %}
+      </div>
+      
+      <div id="income-categories-list" class="category-list hidden">
+        <button class="category-option" onclick="selectCategory('income', '')">
+          <span class="category-dot" style="background-color: #6b7280;"></span>
+          Todas as categorias
+        </button>
+        <button class="category-option" onclick="selectCategory('income', 'no-category')">
+          <span class="category-dot" style="background-color: #9ca3af;"></span>
+          Sem categoria
+        </button>
+        {% for category in income_categories %}
+        <button class="category-option" onclick="selectCategory('income', '{{ category.id }}')">
+          <span class="category-dot" style="background-color: {{ category.color }};"></span>
+          {{ category.name }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Date Filter Dropdown -->
+  <div id="date-filter-dropdown" class="filter-dropdown hidden">
+    <div class="filter-dropdown-content">
+      <div class="filter-dropdown-header">
+        <h4 class="font-semibold text-base-content">Filtrar por Período</h4>
+        <button onclick="closeDateFilter()" class="btn btn-ghost btn-xs">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      
+      <!-- Quick Date Filters -->
+      <div class="quick-date-filters">
+        <button class="quick-date-btn" onclick="selectQuickDate('this-month')">
+          <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
+          Este Mês
+        </button>
+        <button class="quick-date-btn" onclick="selectQuickDate('last-month')">
+          <i data-lucide="calendar-clock" class="w-4 h-4 mr-2"></i>
+          Mês Passado
+        </button>
+        <button class="quick-date-btn" onclick="selectQuickDate('this-year')">
+          <i data-lucide="calendar-range" class="w-4 h-4 mr-2"></i>
+          Este Ano
+        </button>
+      </div>
+      
+      <!-- Year Selection -->
+      <div class="date-filter-section">
+        <h5 class="font-medium text-sm text-base-content/80 mb-2">Por Ano</h5>
+        <div id="year-buttons-container" class="year-buttons">
+          <!-- Years will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <!-- Month Selection (shown when year is selected) -->
+      <div id="month-selection" class="date-filter-section hidden">
+        <h5 class="font-medium text-sm text-base-content/80 mb-2">Meses com Transações</h5>
+        <div id="month-buttons-container" class="month-buttons">
+          <!-- Months will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Filter Modal -->
+  <div id="advanced-filter-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-4xl">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="font-bold text-lg">
+          <i data-lucide="sliders" class="w-5 h-5 inline-block mr-2"></i>
+          Filtros Avançados
+        </h3>
+        <button onclick="closeAdvancedFilter()" class="btn btn-ghost btn-sm">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Date Range Section -->
+        <div class="filter-section">
+          <h4 class="font-semibold text-base-content mb-3">
+            <i data-lucide="calendar-range" class="w-4 h-4 inline-block mr-2"></i>
+            Período Personalizado
+          </h4>
+          <div class="space-y-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Data Inicial</span>
+              </label>
+              <input type="date" id="advanced-start-date" class="input input-bordered">
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Data Final</span>
+              </label>
+              <input type="date" id="advanced-end-date" class="input input-bordered">
+            </div>
+          </div>
+        </div>
+        
+        <!-- Amount Range Section -->
+        <div class="filter-section">
+          <h4 class="font-semibold text-base-content mb-3">
+            <i data-lucide="dollar-sign" class="w-4 h-4 inline-block mr-2"></i>
+            Faixa de Valores
+          </h4>
+          <div class="space-y-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Valor Mínimo (R$)</span>
+              </label>
+              <input type="number" id="advanced-min-amount" class="input input-bordered" step="0.01" min="0" placeholder="0,00">
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Valor Máximo (R$)</span>
+              </label>
+              <input type="number" id="advanced-max-amount" class="input input-bordered" step="0.01" min="0" placeholder="0,00">
+            </div>
+          </div>
+        </div>
+  
+        <!-- Combined Category Selection -->
+        <div class="filter-section col-span-1 lg:col-span-2">
+          <h4 class="font-semibold text-base-content mb-3">
+            <i data-lucide="tag" class="w-4 h-4 inline-block mr-2"></i>
+            Categorias Específicas
+          </h4>
+          <div class="space-y-3 lg:grid lg:grid-cols-2 lg:gap-6">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Categoria de Gastos</span>
+              </label>
+              <select id="advanced-expense-category" class="select select-bordered">
+                <option value="">Todas as categorias</option>
+                <option value="no-category">Sem categoria</option>
+                {% for category in expense_categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Categoria de Receitas</span>
+              </label>
+              <select id="advanced-income-category" class="select select-bordered">
+                <option value="">Todas as categorias</option>
+                <option value="no-category">Sem categoria</option>
+                {% for category in income_categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-action">
+        <button class="btn btn-outline" onclick="clearAdvancedFilters()">
+          <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+          Limpar Filtros
+        </button>
+        <button class="btn btn-primary" onclick="applyAdvancedFilters()">
+          <i data-lucide="filter" class="w-4 h-4 mr-2"></i>
+          Aplicar Filtros
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden inputs to store filter states -->
+  <input type="hidden" id="month-filter" />
+  <input type="hidden" id="year-filter" />
+  <input type="hidden" id="expense-category-filter" />
+  <input type="hidden" id="income-category-filter" />
+  <input type="hidden" id="start-date-filter" />
+  <input type="hidden" id="end-date-filter" />
+  <input type="hidden" id="min-amount-filter" />
+  <input type="hidden" id="max-amount-filter" />
+
+  <!-- Tab Content -->
   <!-- Incomes Tab -->
   <div id="incomes-tab" class="tab-content">
     <div class="card bg-base-100 shadow-lg">
@@ -425,6 +666,345 @@ window.addEventListener("load", function() {
 
 window.addEventListener('hashchange', onHashChange)
 
+// Add filter toggle functionality
+function toggleFilters() {
+  const filterSection = document.getElementById('filter-section');
+  const toggleButton = document.querySelector('.filter-toggle');
+  const isExpanded = toggleButton.getAttribute('aria-expanded') === 'true';
+  
+  if (isExpanded) {
+    filterSection.classList.remove('expanded');
+    filterSection.classList.add('collapsed');
+    toggleButton.setAttribute('aria-expanded', 'false');
+  } else {
+    filterSection.classList.remove('collapsed');
+    filterSection.classList.add('expanded');
+    toggleButton.setAttribute('aria-expanded', 'true');
+  }
+}
 
+// Filter UI Management
+let activeFilters = {
+  category: { type: '', value: '' },
+  date: { year: '', month: '' },
+  advanced: {}
+};
+
+function toggleCategoryFilter() {
+  closeAllFilterDropdowns();
+  const dropdown = document.getElementById('category-filter-dropdown');
+  const btn = document.getElementById('category-filter-btn');
+  
+  if (dropdown.classList.contains('hidden')) {
+    positionDropdown(btn, dropdown);
+    dropdown.classList.remove('hidden');
+    btn.classList.add('tab-active');
+  } else {
+    dropdown.classList.add('hidden');
+    btn.classList.remove('tab-active');
+  }
+}
+
+function toggleDateFilter() {
+  closeAllFilterDropdowns();
+  const dropdown = document.getElementById('date-filter-dropdown');
+  const btn = document.getElementById('date-filter-btn');
+  
+  if (dropdown.classList.contains('hidden')) {
+    positionDropdown(btn, dropdown);
+    dropdown.classList.remove('hidden');
+    btn.classList.add('tab-active');
+    populateYearButtons();
+  } else {
+    dropdown.classList.add('hidden');
+    btn.classList.remove('tab-active');
+  }
+}
+
+function toggleAdvancedFilter() {
+  closeAllFilterDropdowns();
+  const modal = document.getElementById('advanced-filter-modal');
+  const btn = document.getElementById('advanced-filter-btn');
+  
+  modal.classList.add('modal-open');
+  btn.classList.add('tab-active');
+  populateAdvancedFilters();
+}
+
+function closeAllFilterDropdowns() {
+  document.getElementById('category-filter-dropdown').classList.add('hidden');
+  document.getElementById('date-filter-dropdown').classList.add('hidden');
+  document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
+    dropdown.classList.add('hidden');
+  });
+  document.querySelectorAll('#category-filter-btn, #date-filter-btn').forEach(btn => {
+    btn.classList.remove('tab-active');
+  });
+}
+
+function closeCategoryFilter() {
+  document.getElementById('category-filter-dropdown').classList.add('hidden');
+  document.getElementById('category-filter-btn').classList.remove('tab-active');
+}
+
+function closeDateFilter() {
+  document.getElementById('date-filter-dropdown').classList.add('hidden');
+  document.getElementById('date-filter-btn').classList.remove('tab-active');
+}
+
+function closeAdvancedFilter() {
+  document.getElementById('advanced-filter-modal').classList.remove('modal-open');
+  document.getElementById('advanced-filter-btn').classList.remove('tab-active');
+}
+
+function positionDropdown(button, dropdown) {
+  const rect = button.getBoundingClientRect();
+  dropdown.style.position = 'fixed';
+  dropdown.style.top = (rect.bottom + 8) + 'px';
+  dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+  dropdown.style.zIndex = '1000';
+}
+
+function showCategoryType(type) {
+  // Update tab states
+  document.getElementById('expense-cat-tab').classList.toggle('active', type === 'expense');
+  document.getElementById('income-cat-tab').classList.toggle('active', type === 'income');
+  
+  // Show/hide category lists
+  document.getElementById('expense-categories-list').classList.toggle('hidden', type !== 'expense');
+  document.getElementById('income-categories-list').classList.toggle('hidden', type !== 'income');
+}
+
+function selectCategory(type, categoryId) {
+  // Update filter state
+  activeFilters.category = { type, value: categoryId };
+  
+  // Update hidden inputs
+  if (type === 'expense') {
+    document.getElementById('expense-category-filter').value = categoryId;
+    document.getElementById('income-category-filter').value = '';
+  } else {
+    document.getElementById('income-category-filter').value = categoryId;
+    document.getElementById('expense-category-filter').value = '';
+  }
+  
+  // Apply filters and close dropdown
+  applyFilters();
+  closeCategoryFilter();
+  
+  // Update button appearance
+  updateFilterButtonState('category-filter-btn', categoryId !== '');
+}
+
+function populateYearButtons() {
+  const container = document.getElementById('year-buttons-container');
+  const years = getAvailableYears();
+  
+  container.innerHTML = '';
+  
+  // Add "All years" option
+  const allYearsBtn = document.createElement('button');
+  allYearsBtn.className = 'year-btn';
+  allYearsBtn.innerHTML = '<i data-lucide="calendar-range" class="w-4 h-4 mr-2"></i>Todos os anos';
+  allYearsBtn.onclick = () => selectYear('');
+  container.appendChild(allYearsBtn);
+  
+  // Add year buttons
+  years.forEach(year => {
+    const btn = document.createElement('button');
+    btn.className = 'year-btn';
+    btn.textContent = year;
+    btn.onclick = () => selectYear(year);
+    container.appendChild(btn);
+  });
+  
+  // Re-initialize Lucide icons
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
+
+function selectYear(year) {
+  activeFilters.date.year = year;
+  document.getElementById('year-filter').value = year;
+  
+  if (year) {
+    populateMonthButtons(year);
+    document.getElementById('month-selection').classList.remove('hidden');
+  } else {
+    document.getElementById('month-selection').classList.add('hidden');
+    activeFilters.date.month = '';
+    document.getElementById('month-filter').value = '';
+    applyFilters();
+    closeDateFilter();
+  }
+  
+  updateFilterButtonState('date-filter-btn', year !== '');
+}
+
+function populateMonthButtons(year) {
+  const container = document.getElementById('month-buttons-container');
+  const months = getAvailableMonths(year);
+  
+  container.innerHTML = '';
+  
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  
+  months.forEach(month => {
+    const btn = document.createElement('button');
+    btn.className = 'month-btn';
+    btn.textContent = monthNames[month - 1];
+    btn.onclick = () => selectMonth(month);
+    container.appendChild(btn);
+  });
+}
+
+function selectMonth(month) {
+  activeFilters.date.month = month;
+  document.getElementById('month-filter').value = month;
+  
+  applyFilters();
+  closeDateFilter();
+  updateFilterButtonState('date-filter-btn', true);
+}
+
+function selectQuickDate(type) {
+  const now = new Date();
+  
+  switch (type) {
+    case 'this-month':
+      selectYear(now.getFullYear());
+      selectMonth(now.getMonth() + 1);
+      break;
+    case 'last-month':
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      selectYear(lastMonth.getFullYear());
+      selectMonth(lastMonth.getMonth() + 1);
+      break;
+    case 'this-year':
+      selectYear(now.getFullYear());
+      break;
+  }
+}
+
+function updateFilterButtonState(buttonId, hasFilter) {
+  const button = document.getElementById(buttonId);
+  if (hasFilter) {
+    button.classList.add('filter-active');
+  } else {
+    button.classList.remove('filter-active');
+  }
+}
+
+function populateAdvancedFilters() {
+  // Populate current filter values in advanced modal
+  document.getElementById('advanced-start-date').value = document.getElementById('start-date-filter').value;
+  document.getElementById('advanced-end-date').value = document.getElementById('end-date-filter').value;
+  document.getElementById('advanced-min-amount').value = document.getElementById('min-amount-filter').value;
+  document.getElementById('advanced-max-amount').value = document.getElementById('max-amount-filter').value;
+  document.getElementById('advanced-expense-category').value = document.getElementById('expense-category-filter').value;
+  document.getElementById('advanced-income-category').value = document.getElementById('income-category-filter').value;
+}
+
+function applyAdvancedFilters() {
+  // Copy values from advanced modal to hidden inputs
+  document.getElementById('start-date-filter').value = document.getElementById('advanced-start-date').value;
+  document.getElementById('end-date-filter').value = document.getElementById('advanced-end-date').value;
+  document.getElementById('min-amount-filter').value = document.getElementById('advanced-min-amount').value;
+  document.getElementById('max-amount-filter').value = document.getElementById('advanced-max-amount').value;
+  document.getElementById('expense-category-filter').value = document.getElementById('advanced-expense-category').value;
+  document.getElementById('income-category-filter').value = document.getElementById('advanced-income-category').value;
+  
+  // Apply filters and close modal
+  applyFilters();
+  closeAdvancedFilter();
+  
+  // Update button state
+  const hasAdvancedFilters = document.getElementById('advanced-start-date').value ||
+                           document.getElementById('advanced-end-date').value ||
+                           document.getElementById('advanced-min-amount').value ||
+                           document.getElementById('advanced-max-amount').value ||
+                           document.getElementById('advanced-search').value;
+  
+  updateFilterButtonState('advanced-filter-btn', hasAdvancedFilters);
+}
+
+function clearAdvancedFilters() {
+  document.getElementById('advanced-start-date').value = '';
+  document.getElementById('advanced-end-date').value = '';
+  document.getElementById('advanced-min-amount').value = '';
+  document.getElementById('advanced-max-amount').value = '';
+  document.getElementById('advanced-search').value = '';
+  document.getElementById('advanced-expense-category').value = '';
+  document.getElementById('advanced-income-category').value = '';
+}
+
+// Helper functions
+function getAvailableYears() {
+  // This should return years that have transactions
+  const years = new Set();
+  
+  // Extract years from transaction data
+  document.querySelectorAll('.transaction-card, #expenses-tab tbody tr, #incomes-tab tbody tr').forEach(element => {
+    const dateElement = element.querySelector('.text-xs:last-child, td:nth-child(3)');
+    if (dateElement) {
+      const dateText = dateElement.textContent.trim();
+      const year = dateText.split('/')[2] || dateText.split('-')[0];
+      if (year) years.add(parseInt(year));
+    }
+  });
+  
+  return Array.from(years).sort((a, b) => b - a);
+}
+
+function getAvailableMonths(year) {
+  // This should return months that have transactions for the given year
+  const months = new Set();
+  
+  document.querySelectorAll('.transaction-card, #expenses-tab tbody tr, #incomes-tab tbody tr').forEach(element => {
+    const dateElement = element.querySelector('.text-xs:last-child, td:nth-child(3)');
+    if (dateElement) {
+      const dateText = dateElement.textContent.trim();
+      const parts = dateText.split('/');
+      if (parts.length === 3 && parseInt(parts[2]) === year) {
+        months.add(parseInt(parts[1]));
+      }
+    }
+  });
+  
+  return Array.from(months).sort((a, b) => a - b);
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+  const filterDropdowns = document.querySelectorAll('.filter-dropdown');
+  const filterButtons = document.querySelectorAll('#category-filter-btn, #date-filter-btn');
+  
+  let clickedInsideFilter = false;
+  
+  filterDropdowns.forEach(dropdown => {
+    if (dropdown.contains(event.target)) {
+      clickedInsideFilter = true;
+    }
+  });
+  
+  filterButtons.forEach(button => {
+    if (button.contains(event.target)) {
+      clickedInsideFilter = true;
+    }
+  });
+  
+  if (!clickedInsideFilter) {
+    closeAllFilterDropdowns();
+  }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+  // ...existing initialization...
+});
 </script>
 {% endblock %}
