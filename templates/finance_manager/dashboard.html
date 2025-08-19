@@ -119,7 +119,13 @@
               <tr>
                 <td>{{ expense.spent_at | date:"D, d M, Y" }}</td>
                 <td>{{ expense.description }}</td>
-                <td><span class="badge badge-primary border-hidden shadow-md opacity-80" style="background-color:{{ expense.category.color }}; important!">{{ expense.category.name }}</span></td>
+                <td>
+                  {% if expense.category %}
+                  <span class="badge badge-primary border-hidden shadow-md opacity-80" style="background-color:{{ expense.category.color }}; important!">{{ expense.category.name }}</span>
+                  {% else %}
+                  <span class="badge badge-ghost">Sem categoria</span>
+                  {% endif %}
+                </td>
                 {% with am=expense.amount %}
                 <td class="text-error font-semibold">R$ {{ am|intdiv:100 }}{% if am|mod:100 == 0 %},00{%elif am|mod:100 < 10%},0{{am|mod:100}}{% else %},{{am|mod:100}}{% endif %}</td>
                 {% endwith %}

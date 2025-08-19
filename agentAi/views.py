@@ -143,7 +143,7 @@ def get_response(request):
             !IMPORTANT ***dont't put triple backticks or any indication of the format, only use the html tags***
             
             The models for expenses and incomes are:
-            {"category": 'categorys name' (insert an existing or '' )', "spent_at": 'yyyy-mm-dd', "description": 'description', "detailed_description": detailed_description, "amount": 'amount in cents', type: 'exp' or 'inc' (exp for expenses and inc for incomes)}
+            {"category": 'categorys name' (insert an existing or 'none' if there isn't one)', "spent_at": 'yyyy-mm-dd', "description": 'description', "detailed_description": detailed_description, "amount": 'amount in cents', type: 'exp' or 'inc' (exp for expenses and inc for incomes)}
             insert it after the html response with a __cut__ text dividing them.
             (the expenses and incomes may be inside a [] and you can create at maximum 5 for input, but always inside the [])
             """
@@ -178,7 +178,7 @@ def get_response(request):
                 if models:
                     for model in models:
                         if model["type"] == "exp":
-                            if not (model["category"] == ""):
+                            if not (model["category"] == "none"):
                                 category = ExpenseCategory.objects.get(
                                     name=model["category"], user=request.user
                                 )
@@ -193,7 +193,7 @@ def get_response(request):
                                 amount=model["amount"],
                             )
                         elif model["type"] == "inc":
-                            if not (model["category"] == ""):
+                            if not (model["category"] == "none"):
                                 category = IncomeCategorys.objects.get(
                                     name=model["category"], user=request.user
                                 )
