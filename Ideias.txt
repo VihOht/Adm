@@ -34,6 +34,9 @@ Sistema de analise de dados com planilhas de exel ou svc implementado com leitur
 Adicionar sistema de reservas de dinheiro, excluido-os da porção do saldo. !!!IMPORTANTE
 outra coisa que pensei agora: da pra tirar uma x porcentagem da receita e colocar imediatamente em um campo de receita ?
 
+Deixar fixo a side bar e o acesso ao perfil do dashboard das financias.
+Álvaro:
+
 FUTURO DO FUTURO
 Sistema de débito automático:
 7 - acho que poderia adicionar, mas so quando chegasse o dia que emitia uma confirmação e ai sim adicionava ou tirava da conta e dos cálculos

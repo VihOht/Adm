@@ -69,7 +69,7 @@ def get_conversation_messages(request):
 def get_response(request):
     # Get or create active conversation
     conversation = Conversation.get_or_create_active_conversation(request.user)
-    if request.user.has_ai:
+    if request.user.is_premium or request.user.is_staff:
         try:
             data = json.loads(request.body)
             user_message = data["user_message"]
