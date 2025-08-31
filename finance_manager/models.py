@@ -7,7 +7,7 @@ from django.db import models
 
 class ExpenseCategory(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, unique=True)
     description = models.CharField(max_length=300)
     color = ColorField(default="#FFFFFF")
 
