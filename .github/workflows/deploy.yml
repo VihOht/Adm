@@ -1,0 +1,69 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [ self-hosted ]
+    env:
+      APP_DIR: /home/ec2-user/Adm
+      VENV: /home/ec2-user/Adm/.venv
+      PYVER: "3.13"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv if missing
+        run: |
+          command -v uv || (curl -LsSf https://astral.sh/uv/install.sh | sh)
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+          export PATH="$HOME/.local/bin:$PATH"
+          uv --version
+
+      - name: Sanitize Python env
+        run: |
+          unset PYTHONHOME PYTHONPATH || true
+          export -n PYTHONHOME PYTHONPATH || true
+
+      - name: Rsync repo to app dir
+        run: |
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.env' \
+            --exclude 'media/' \
+            "$GITHUB_WORKSPACE"/ "$APP_DIR"/
+
+      - name: Ensure venv with uv
+        run: |
+          uv python install "$PYVER"
+          uv venv --python "$PYVER" "$VENV"
+
+      - name: Install deps with uv
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          if [ -f "pyproject.toml" ]; then
+            uv sync --no-dev --python "$VENV/bin/python"
+          elif [ -f "requirements.txt" ]; then
+            uv pip install --python "$VENV/bin/python" -r requirements.txt
+          fi
+
+      - name: Django migrate
+        working-directory: ${{ env.APP_DIR }}
+        run: "$VENV/bin/python" manage.py migrate --noinput
+
+      - name: Collect static
+        working-directory: ${{ env.APP_DIR }}
+        run: "$VENV/bin/python" manage.py collectstatic --noinput
+
+      - name: Restart services
+        run: |
+          sudo systemctl restart gunicorn
+          sudo systemctl reload nginx
