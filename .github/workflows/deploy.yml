@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 concurrency:
   group: deploy-prod
@@ -11,18 +11,21 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: [ self-hosted, ec2, prod ]   # matches your runner labels
+    runs-on: [ self-hosted, ec2, prod ]
     env:
       APP_DIR: /home/ec2-user/Adm
       VENV: /home/ec2-user/Adm/.venv
       PYVER: "3.13"
 
+    defaults:
+      run:
+        shell: bash
+        working-directory: /home/ec2-user/Adm
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install uv if missing
-        shell: bash
         run: |
           if ! command -v uv >/dev/null 2>&1; then
             curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -32,13 +35,11 @@ jobs:
           uv --version
 
       - name: Sanitize Python env
-        shell: bash
         run: |
           unset PYTHONHOME PYTHONPATH || true
           export -n PYTHONHOME PYTHONPATH || true
 
       - name: Rsync repo to app dir
-        shell: bash
         run: |
           rsync -a --delete \
             --exclude '.git' \
@@ -48,15 +49,12 @@ jobs:
             "$GITHUB_WORKSPACE"/ "$APP_DIR"/
 
       - name: Ensure venv with uv
-        shell: bash
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           uv python install "$PYVER"
           uv venv --python "$PYVER" "$VENV"
 
       - name: Install deps with uv
-        shell: bash
-        working-directory: ${{ env.APP_DIR }}
         run: |
           if [ -f "pyproject.toml" ]; then
             uv sync --no-dev --python "$VENV/bin/python"
@@ -65,17 +63,12 @@ jobs:
           fi
 
       - name: Django migrate
-        shell: bash
-        working-directory: ${{ env.APP_DIR }}
         run: "$VENV/bin/python" manage.py migrate --noinput
 
       - name: Collect static
-        shell: bash
-        working-directory: ${{ env.APP_DIR }}
         run: "$VENV/bin/python" manage.py collectstatic --noinput
 
       - name: Restart services
-        shell: bash
         run: |
           sudo systemctl restart gunicorn
           sudo systemctl reload nginx
