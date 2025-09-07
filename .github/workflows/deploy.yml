@@ -1,0 +1,91 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [ self-hosted ]
+    env:
+      APP_DIR: /home/ec2-user/Adm
+      VENV: /home/ec2-user/Adm/.venv
+      PYVER: "3.13"
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: /home/ec2-user/Adm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv if missing
+        run: |
+          if ! command -v uv >/dev/null 2>&1; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+          fi
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+          export PATH="$HOME/.local/bin:$PATH"
+          uv --version
+
+      - name: Sanitize Python env
+        run: |
+          unset PYTHONHOME PYTHONPATH || true
+          export -n PYTHONHOME PYTHONPATH || true
+
+      - name: Rsync repo to app dir
+        run: |
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.env' \
+            --exclude 'media/' \
+            "$GITHUB_WORKSPACE"/ "$APP_DIR"/
+
+      - name: Ensure venv with uv
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          uv python install "$PYVER"
+          uv venv --python "$PYVER" "$VENV"
+
+      - name: Install deps with uv
+        run: |
+          if [ -f "pyproject.toml" ]; then
+            uv sync --no-dev --python "$VENV/bin/python"
+          elif [ -f "requirements.txt" ]; then
+            uv pip install --python "$VENV/bin/python" -r requirements.txt
+          fi
+
+      - name: Export DATABASE_URL from .env
+        run: |
+          VAL=$(grep -E '^DATABASE_URL=' "$APP_DIR/.env" | cut -d= -f2- || true)
+          if [ -z "$VAL" ]; then
+            echo "DATABASE_URL not found in $APP_DIR/.env" >&2
+            exit 1
+          fi
+          # write safely to GITHUB_ENV (handles special chars)
+          {
+            echo "DATABASE_URL<<__EOF__"
+            echo "$VAL"
+            echo "__EOF__"
+          } >> "$GITHUB_ENV"
+
+      - name: Django migrate
+        run: |
+          "$VENV/bin/python" manage.py migrate --noinput
+
+      - name: Collect static
+        run: |
+          "$VENV/bin/python" manage.py collectstatic --noinput
+
+      - name: Restart services
+        run: |
+          sudo systemctl restart gunicorn
+          sudo systemctl reload nginx

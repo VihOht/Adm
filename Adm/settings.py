@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+# NEW: load .env so manage.py gets your variables
+
 import mimetypes
 import os
 from pathlib import Path
@@ -20,6 +22,10 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# NEW: load .env so manage.py gets your variables
+from dotenv import load_dotenv
+load_dotenv(BASE_DIR / ".env")
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -29,15 +35,9 @@ SECRET_KEY = os.getenv(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "false") == "true"
+DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "vihohtlife.up.railway.app",
-    "*.up.railway.app",
-]
-
+ALLOWED_HOSTS = ["*vihoht.dev", "vihoht.dev", "life.vihoht.dev"]
 
 mimetypes.add_type("text/css", ".css", True)
 mimetypes.add_type("application/javascript", ".js", True)
@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "mathfilters",
     "colorfield",
+    "channels",
 ]
 
 MIDDLEWARE = [
@@ -145,7 +146,7 @@ USE_TZ = True
 STATIC_URL = "/static/"
 
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    BASE_DIR / "staticfiles",
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
@@ -166,33 +167,52 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-# Email Configuration for Production
-EMAIL_BACKEND = os.environ.get(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend"
-    if DEBUG
-    else "django.core.mail.backends.smtp.EmailBackend",
-)
+# Security behind Cloudflare+Nginx
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "1") == "1"
 
-# SMTP Configuration
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
-EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = ["https://life.vihoht.dev"]
 
-# Default email settings
-DEFAULT_FROM_EMAIL = os.environ.get(
-    "DEFAULT_FROM_EMAIL",
-    f"VihOhtLife <{EMAIL_HOST_USER}>"
-    if EMAIL_HOST_USER
-    else "VihOhtLife <noreply@vihohtlife.com>",
-)
-SERVER_EMAIL = DEFAULT_FROM_EMAIL
+SECURE_HSTS_SECONDS = 63072000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
 
-# Email timeout settings
-EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "60"))
+# Database from DATABASE_URL
+DATABASES = {
+    "default": dj_database_url.parse(
+        os.getenv("DATABASE_URL", "postgres://localhost:5432/postgres"),
+        conn_max_age=60,  # keepalive
+        ssl_require=True  # RDS will accept TLS; remove if you use non-TLS
+    )
+}
 
-# Password reset settings
-PASSWORD_RESET_TIMEOUT = int(os.environ.get("PASSWORD_RESET_TIMEOUT", "3600"))  # 1 hour
+# Static & Media (served by Nginx)
+STATIC_URL = "/static/"
+STATIC_ROOT = "/home/ec2-user/Adm/static"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = "/home/ec2-user/Adm/media"
+
+# Email
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "1") == "1"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "webmaster@localhost")
+
+# Logging (simple)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "INFO"},
+}
+
+# ASGI entry is Adm.asgi:application (Gunicorn with Uvicorn workers will use it)
+ASGI_APPLICATION = "Adm.asgi.application"
