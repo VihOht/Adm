@@ -43,7 +43,7 @@ class FinanceGraphGenerator:
         return image_base64
 
     def generate_expenses_by_category(self):
-        """Generate pie chart for expenses by category"""
+        """Generate stacked bar chart for expenses by category over time"""
         if not self.dataframes or self.dataframes["expenses"].empty:
             return None
 
@@ -55,78 +55,153 @@ class FinanceGraphGenerator:
             categories_df, left_on="category_id", right_on="id", suffixes=("", "_cat")
         )
 
-        # Group by category and sum amounts
-        category_totals = merged.groupby("name")["amount"].sum()
+        # Add expenses without categories
+        uncategorized = expenses_df[expenses_df["category_id"].isna()].copy()
+        if not uncategorized.empty:
+            uncategorized["name"] = "Sem categoria"
+            uncategorized["color"] = "#9ca3af"
+            merged = pd.concat([merged, uncategorized], ignore_index=True)
+
+        if merged.empty:
+            return None
+
+        # Convert dates and create month-year periods
+        merged["spent_at"] = pd.to_datetime(merged["spent_at"])
+        merged["month_year"] = merged["spent_at"].dt.to_period("M")
+
+        # Group by month and category
+        monthly_category_data = (
+            merged.groupby(["month_year", "name"])["amount"].sum().unstack(fill_value=0)
+        )
+
+        if monthly_category_data.empty:
+            return None
+
+        # Convert to reais
+        monthly_category_data = monthly_category_data / 100
 
         fig, (ax, ax_legend) = plt.subplots(
-            1, 2, figsize=(16, 8), gridspec_kw={"width_ratios": [3, 1]}
-        )
-        colors = plt.cm.Set3(range(len(category_totals)))
-
-        wedges, texts, autotexts = ax.pie(
-            category_totals.values,
-            labels=None,  # Remove labels from pie chart
-            autopct="%1.1f%%",
-            colors=colors,
-            startangle=90,
+            1, 2, figsize=(18, 10), gridspec_kw={"width_ratios": [3, 1]}
         )
 
-        ax.set_title("Gastos por Categoria", fontsize=16, fontweight="bold", pad=20)
+        # Prepare data for stacked bar chart
+        months = [str(month) for month in monthly_category_data.index]
+        categories = monthly_category_data.columns
 
-        # Add value labels
-        for i, (category, amount) in enumerate(category_totals.items()):
-            if float(autotexts[i].get_text().replace("%", "")) < 5:
-                autotexts[i].set_text("")
+        # Create color map
+        colors = plt.cm.Set3(range(len(categories)))
+        category_colors = {}
+
+        # Use predefined colors from database if available
+        for i, category in enumerate(categories):
+            if category != "Sem categoria":
+                try:
+                    cat_color = categories_df[categories_df["name"] == category][
+                        "color"
+                    ].iloc[0]
+                    if cat_color and cat_color.startswith("#"):
+                        category_colors[category] = cat_color
+                    else:
+                        category_colors[category] = colors[i]
+                except:
+                    category_colors[category] = colors[i]
             else:
-                autotexts[i].set_text(f"{autotexts[i].get_text()}")
+                category_colors[category] = "#9ca3af"
 
-        # Create detailed legend on the side
-        ax_legend.axis("off")
-        legend_elements = []
+        # Create stacked bars
+        bottom = np.zeros(len(months))
+        bars = []
 
-        for i, (category, amount) in enumerate(category_totals.items()):
-            percentage = (amount / category_totals.sum()) * 100
-            legend_elements.append(
-                {
-                    "category": category,
-                    "amount": amount / 100,
-                    "percentage": percentage,
-                    "color": colors[i],
-                }
+        for category in categories:
+            values = monthly_category_data[category].values
+            color = category_colors[category]
+
+            bar = ax.bar(
+                months,
+                values,
+                bottom=bottom,
+                label=category,
+                color=color,
+                alpha=0.8,
+                edgecolor="white",
+                linewidth=0.5,
             )
+            bars.append(bar)
+            bottom += values
 
-        # Sort by amount descending
-        legend_elements.sort(key=lambda x: x["amount"], reverse=True)
+        # Formatting
+        ax.set_title(
+            "Gastos por Categoria ao Longo do Tempo",
+            fontsize=18,
+            fontweight="bold",
+            pad=30,
+        )
+        ax.set_xlabel("Mês/Ano", fontsize=14, fontweight="bold")
+        ax.set_ylabel("Valor (R$)", fontsize=14, fontweight="bold")
 
-        # Add legend title
+        # Rotate x-axis labels
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+
+        # Add grid
+        ax.grid(True, alpha=0.3, axis="y", linestyle="-", linewidth=0.5)
+
+        # Add total values on top of each bar
+        monthly_totals = monthly_category_data.sum(axis=1)
+        for i, (month, total) in enumerate(monthly_totals.items()):
+            if total > 0:
+                ax.text(
+                    i,
+                    total + total * 0.02,
+                    f"R$ {total:.0f}",
+                    ha="center",
+                    va="bottom",
+                    fontweight="bold",
+                    fontsize=10,
+                )
+
+        # Create detailed legend
+        ax_legend.axis("off")
         ax_legend.text(
             0.05,
             0.95,
-            "Detalhamento das Categorias",
+            "Análise de Gastos por Categoria",
             fontsize=14,
             fontweight="bold",
             transform=ax_legend.transAxes,
         )
 
-        # Add legend items
+        # Calculate statistics for each category
+        category_totals = monthly_category_data.sum(axis=0).sort_values(ascending=False)
+        total_expenses = category_totals.sum()
+
+        legend_info = []
         y_pos = 0.85
-        for item in legend_elements:
-            # Color square
+
+        # Add category breakdown
+        for category, total in category_totals.items():
+            percentage = (total / total_expenses) * 100 if total_expenses > 0 else 0
+            avg_monthly = (
+                total / len(monthly_category_data)
+                if len(monthly_category_data) > 0
+                else 0
+            )
+
+            # Color indicator
             ax_legend.add_patch(
                 plt.Rectangle(
-                    (0.05, y_pos - 0.02),
+                    (0.05, y_pos - 0.015),
                     0.03,
-                    0.03,
-                    facecolor=item["color"],
+                    0.025,
+                    facecolor=category_colors[category],
                     transform=ax_legend.transAxes,
                 )
             )
 
-            # Category name and values
+            # Category name and stats
             ax_legend.text(
                 0.12,
                 y_pos,
-                f"{item['category']}",
+                f"{category}",
                 fontsize=11,
                 fontweight="bold",
                 transform=ax_legend.transAxes,
@@ -134,25 +209,53 @@ class FinanceGraphGenerator:
             ax_legend.text(
                 0.12,
                 y_pos - 0.025,
-                f"R$ {item['amount']:.2f} ({item['percentage']:.1f}%)",
+                f"Total: R$ {total:.2f} ({percentage:.1f}%)",
                 fontsize=10,
                 color="gray",
                 transform=ax_legend.transAxes,
             )
+            ax_legend.text(
+                0.12,
+                y_pos - 0.045,
+                f"Média mensal: R$ {avg_monthly:.2f}",
+                fontsize=9,
+                color="darkgray",
+                transform=ax_legend.transAxes,
+            )
 
-            y_pos -= 0.08
+            y_pos -= 0.10
 
-        # Add total
-        total_amount = category_totals.sum() / 100
+        # Add summary statistics
+        y_pos -= 0.02
         ax_legend.text(
             0.05,
-            y_pos - 0.02,
-            f"Total Geral: R$ {total_amount:.2f}",
+            y_pos,
+            "📊 RESUMO GERAL",
             fontsize=12,
             fontweight="bold",
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.5),
             transform=ax_legend.transAxes,
         )
+        y_pos -= 0.06
+
+        summary_stats = [
+            f"Total geral: R$ {total_expenses:.2f}",
+            f"Categorias ativas: {len(category_totals[category_totals > 0])}",
+            f"Período: {len(monthly_category_data)} meses",
+            f"Média mensal: R$ {total_expenses / len(monthly_category_data):.2f}",
+            f"Maior categoria: {category_totals.index[0]}",
+            f"({(category_totals.iloc[0] / total_expenses * 100):.1f}% do total)",
+        ]
+
+        for stat in summary_stats:
+            ax_legend.text(
+                0.05,
+                y_pos,
+                stat,
+                fontsize=10,
+                color="black" if not stat.startswith("(") else "gray",
+                transform=ax_legend.transAxes,
+            )
+            y_pos -= 0.04
 
         plt.tight_layout()
         return self._fig_to_base64(fig)
@@ -462,109 +565,168 @@ class FinanceGraphGenerator:
         return self._fig_to_base64(fig)
 
     def generate_income_by_category(self):
-        """Generate donut chart for income by category"""
+        """Generate stacked bar chart for income by category over time"""
         if not self.dataframes or self.dataframes["incomes"].empty:
             return None
 
         incomes_df = self.dataframes["incomes"]
         income_categories_df = self.dataframes["income_categories"]
 
-        # Handle incomes without categories
-        categorized_incomes = incomes_df[incomes_df["category_id"].notna()]
-        uncategorized_incomes = incomes_df[incomes_df["category_id"].isna()]
+        # Merge incomes with categories
+        merged = incomes_df.merge(
+            income_categories_df,
+            left_on="category_id",
+            right_on="id",
+            suffixes=("", "_cat"),
+        )
 
-        category_totals = pd.Series(dtype="float64")
+        # Add incomes without categories
+        uncategorized = incomes_df[incomes_df["category_id"].isna()].copy()
+        if not uncategorized.empty:
+            uncategorized["name"] = "Sem categoria"
+            uncategorized["color"] = "#9ca3af"
+            merged = pd.concat([merged, uncategorized], ignore_index=True)
 
-        if not categorized_incomes.empty and not income_categories_df.empty:
-            merged = categorized_incomes.merge(
-                income_categories_df,
-                left_on="category_id",
-                right_on="id",
-                suffixes=("", "_cat"),
-            )
-            category_totals = merged.groupby("name")["amount"].sum()
-
-        if not uncategorized_incomes.empty:
-            category_totals["Sem Categoria"] = uncategorized_incomes["amount"].sum()
-
-        if category_totals.empty:
+        if merged.empty:
             return None
 
+        # Convert dates and create month-year periods
+        merged["received_at"] = pd.to_datetime(merged["received_at"])
+        merged["month_year"] = merged["received_at"].dt.to_period("M")
+
+        # Group by month and category
+        monthly_category_data = (
+            merged.groupby(["month_year", "name"])["amount"].sum().unstack(fill_value=0)
+        )
+
+        if monthly_category_data.empty:
+            return None
+
+        # Convert to reais
+        monthly_category_data = monthly_category_data / 100
+
         fig, (ax, ax_legend) = plt.subplots(
-            1, 2, figsize=(16, 8), gridspec_kw={"width_ratios": [3, 1]}
-        )
-        colors = plt.cm.Set2(range(len(category_totals)))
-
-        # Create donut chart
-        wedges, texts, autotexts = ax.pie(
-            category_totals.values,
-            labels=None,  # Remove labels from chart
-            autopct="%1.1f%%",
-            colors=colors,
-            startangle=90,
-            pctdistance=0.75,
+            1, 2, figsize=(18, 10), gridspec_kw={"width_ratios": [3, 1]}
         )
 
-        # Create donut hole
-        centre_circle = plt.Circle((0, 0), 0.50, fc="white")
-        ax.add_artist(centre_circle)
+        # Prepare data for stacked bar chart
+        months = [str(month) for month in monthly_category_data.index]
+        categories = monthly_category_data.columns
 
-        ax.set_title("Receitas por Categoria", fontsize=16, fontweight="bold", pad=20)
+        # Create color map
+        colors = plt.cm.Set2(range(len(categories)))
+        category_colors = {}
 
-        # Add value labels only for significant percentages
-        for i, (category, amount) in enumerate(category_totals.items()):
-            if float(autotexts[i].get_text().replace("%", "")) >= 5:
-                autotexts[i].set_text(f"{autotexts[i].get_text()}")
+        # Use predefined colors from database if available
+        for i, category in enumerate(categories):
+            if category != "Sem categoria":
+                try:
+                    cat_color = income_categories_df[
+                        income_categories_df["name"] == category
+                    ]["color"].iloc[0]
+                    if cat_color and cat_color.startswith("#"):
+                        category_colors[category] = cat_color
+                    else:
+                        category_colors[category] = colors[i]
+                except:
+                    category_colors[category] = colors[i]
             else:
-                autotexts[i].set_text("")
+                category_colors[category] = "#9ca3af"
+
+        # Create stacked bars
+        bottom = np.zeros(len(months))
+        bars = []
+
+        for category in categories:
+            values = monthly_category_data[category].values
+            color = category_colors[category]
+
+            bar = ax.bar(
+                months,
+                values,
+                bottom=bottom,
+                label=category,
+                color=color,
+                alpha=0.8,
+                edgecolor="white",
+                linewidth=0.5,
+            )
+            bars.append(bar)
+            bottom += values
+
+        # Formatting
+        ax.set_title(
+            "Receitas por Categoria ao Longo do Tempo",
+            fontsize=18,
+            fontweight="bold",
+            pad=30,
+        )
+        ax.set_xlabel("Mês/Ano", fontsize=14, fontweight="bold")
+        ax.set_ylabel("Valor (R$)", fontsize=14, fontweight="bold")
+
+        # Rotate x-axis labels
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+
+        # Add grid
+        ax.grid(True, alpha=0.3, axis="y", linestyle="-", linewidth=0.5)
+
+        # Add total values on top of each bar
+        monthly_totals = monthly_category_data.sum(axis=1)
+        for i, (month, total) in enumerate(monthly_totals.items()):
+            if total > 0:
+                ax.text(
+                    i,
+                    total + total * 0.02,
+                    f"R$ {total:.0f}",
+                    ha="center",
+                    va="bottom",
+                    fontweight="bold",
+                    fontsize=10,
+                )
 
         # Create detailed legend
         ax_legend.axis("off")
-        legend_elements = []
-
-        for i, (category, amount) in enumerate(category_totals.items()):
-            percentage = (amount / category_totals.sum()) * 100
-            legend_elements.append(
-                {
-                    "category": category,
-                    "amount": amount / 100,
-                    "percentage": percentage,
-                    "color": colors[i],
-                }
-            )
-
-        # Sort by amount descending
-        legend_elements.sort(key=lambda x: x["amount"], reverse=True)
-
-        # Add legend title
         ax_legend.text(
             0.05,
             0.95,
-            "Detalhamento das Receitas",
+            "Análise de Receitas por Categoria",
             fontsize=14,
             fontweight="bold",
             transform=ax_legend.transAxes,
         )
 
-        # Add legend items
+        # Calculate statistics for each category
+        category_totals = monthly_category_data.sum(axis=0).sort_values(ascending=False)
+        total_incomes = category_totals.sum()
+
+        legend_info = []
         y_pos = 0.85
-        for item in legend_elements:
-            # Color square
+
+        # Add category breakdown
+        for category, total in category_totals.items():
+            percentage = (total / total_incomes) * 100 if total_incomes > 0 else 0
+            avg_monthly = (
+                total / len(monthly_category_data)
+                if len(monthly_category_data) > 0
+                else 0
+            )
+
+            # Color indicator
             ax_legend.add_patch(
                 plt.Rectangle(
-                    (0.05, y_pos - 0.02),
+                    (0.05, y_pos - 0.015),
                     0.03,
-                    0.03,
-                    facecolor=item["color"],
+                    0.025,
+                    facecolor=category_colors[category],
                     transform=ax_legend.transAxes,
                 )
             )
 
-            # Category name and values
+            # Category name and stats
             ax_legend.text(
                 0.12,
                 y_pos,
-                f"{item['category']}",
+                f"{category}",
                 fontsize=11,
                 fontweight="bold",
                 transform=ax_legend.transAxes,
@@ -572,36 +734,53 @@ class FinanceGraphGenerator:
             ax_legend.text(
                 0.12,
                 y_pos - 0.025,
-                f"R$ {item['amount']:.2f} ({item['percentage']:.1f}%)",
+                f"Total: R$ {total:.2f} ({percentage:.1f}%)",
                 fontsize=10,
                 color="gray",
                 transform=ax_legend.transAxes,
             )
+            ax_legend.text(
+                0.12,
+                y_pos - 0.045,
+                f"Média mensal: R$ {avg_monthly:.2f}",
+                fontsize=9,
+                color="darkgray",
+                transform=ax_legend.transAxes,
+            )
 
-            y_pos -= 0.08
+            y_pos -= 0.10
 
-        # Add total and statistics
-        total_amount = category_totals.sum() / 100
-        ax_legend.text(
-            0.05,
-            y_pos - 0.02,
-            f"Total Geral: R$ {total_amount:.2f}",
-            fontsize=12,
-            fontweight="bold",
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgreen", alpha=0.5),
-            transform=ax_legend.transAxes,
-        )
-
-        y_pos -= 0.08
-        avg_per_category = total_amount / len(category_totals)
+        # Add summary statistics
+        y_pos -= 0.02
         ax_legend.text(
             0.05,
             y_pos,
-            f"Média por categoria: R$ {avg_per_category:.2f}",
-            fontsize=10,
-            color="gray",
+            "📊 RESUMO GERAL",
+            fontsize=12,
+            fontweight="bold",
             transform=ax_legend.transAxes,
         )
+        y_pos -= 0.06
+
+        summary_stats = [
+            f"Total geral: R$ {total_incomes:.2f}",
+            f"Categorias ativas: {len(category_totals[category_totals > 0])}",
+            f"Período: {len(monthly_category_data)} meses",
+            f"Média mensal: R$ {total_incomes / len(monthly_category_data):.2f}",
+            f"Maior categoria: {category_totals.index[0]}",
+            f"({(category_totals.iloc[0] / total_incomes * 100):.1f}% do total)",
+        ]
+
+        for stat in summary_stats:
+            ax_legend.text(
+                0.05,
+                y_pos,
+                stat,
+                fontsize=10,
+                color="black" if not stat.startswith("(") else "gray",
+                transform=ax_legend.transAxes,
+            )
+            y_pos -= 0.04
 
         plt.tight_layout()
         return self._fig_to_base64(fig)
