@@ -1,0 +1,71 @@
+# SMTP Configuration
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+
+# Default email settings
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL",
+    f"VihOhtLife <{EMAIL_HOST_USER}>"
+    if EMAIL_HOST_USER
+    else "VihOhtLife <noreply@vihohtlife.com>",
+)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Email timeout settings
+EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "60"))
+
+# Password reset settings
+PASSWORD_RESET_TIMEOUT = int(os.environ.get("PASSWORD_RESET_TIMEOUT", "3600"))  # 1 hour
+
+
+# --- Security behind Cloudflare + Nginx ---
+# Nginx sets: X-Forwarded-Proto https  (as in your Nginx conf)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
+# Force HTTPS
+SECURE_SSL_REDIRECT = True
+
+# Cookies must be secure on .dev
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# CSRF (Django 4+ requires scheme in trusted origins)
+CSRF_TRUSTED_ORIGINS = [
+    "https://life.vihoht.dev",
+]
+
+# HSTS (note: .dev is HSTS-preloaded at the TLD, this is still fine)
+SECURE_HSTS_SECONDS = 63072000  # 2 years
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_BROWSER_XSS_FILTER = True  # harmless/legacy; safe to keep
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+
+# --- Static & Media (serving via Nginx) ---
+STATIC_URL = "/static/"
+STATIC_ROOT = "/srv/app/static"
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = "/srv/app/media"
+
+# If you use whitenoise instead of Nginx for static (not needed here), adjust accordingly.
+
+# --- Allowed redirects (optional) ---
+# If you do social auth or cross-domain redirects, add safe targets here:
+# CSRF_TRUSTED_ORIGINS += ["https://admin.life.vihoht.dev"]
+# ALLOWED_HOSTS += ["admin.life.vihoht.dev"]
+
+# --- Logging (optional but helpful) ---
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "INFO"},
+}
