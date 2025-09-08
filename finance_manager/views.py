@@ -60,6 +60,7 @@ def dashboard(request):
             "total_amount": f"{total_amount // 100},{total_amount % 100:02n}",
             "range_of_days": range_of_days,
             "daily_mean": f"{daily_mean // 100},{daily_mean % 100:02n}",
+            "this_month": datetime.now().strftime("%B"),
         },
     )
 
